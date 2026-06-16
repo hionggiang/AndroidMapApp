@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "903975515697",
+    "firebase_url": "https://mapdiachinhanai-default-rtdb.firebaseio.com",
+    "project_id": "mapdiachinhanai",
+    "storage_bucket": "mapdiachinhanai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:903975515697:android:769ab67e9753b3c4dd8710",
+        "android_client_info": {
+          "package_name": "com.example.bdsdcna"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqDdcBomzTlBGSZmCYQMFsLBTItPCBe6U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
