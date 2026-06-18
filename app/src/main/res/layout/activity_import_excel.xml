@@ -2,24 +2,21 @@
 
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center"
-    android:orientation="vertical"
-    android:padding="24dp">
+    android:orientation="vertical">
+
+    <Button
+        android:id="@+id/btnSelectExcel"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:text="Chọn file Excel"/>
 
     <Button
         android:id="@+id/btnImportExcel"
         android:layout_width="250dp"
         android:layout_height="wrap_content"
-        android:text="Import Excel lên Firestore" />
-
-    <Button
-        android:id="@+id/btnUploadImage"
-        android:layout_width="250dp"
-        android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Upload ảnh hộ dân" />
-
+        android:text="Import dữ liệu"/>
 </LinearLayout>
