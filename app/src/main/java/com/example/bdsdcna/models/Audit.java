@@ -1,4 +1,4 @@
-package com.example.bdsdcna;
+package com.example.bdsdcna.models;
 
 public class Audit {
 
