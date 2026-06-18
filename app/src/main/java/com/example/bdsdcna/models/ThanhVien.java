@@ -3,12 +3,30 @@ package com.example.bdsdcna.models;
 public class ThanhVien {
 
     private String memberId;
+
     private String hoTen;
+
+    /*
+     * CHU_HO
+     * VO_CHONG
+     * CON
+     * BO_ME
+     * KHAC
+     */
     private String quanHe;
+
     private String ngaySinh;
+
+    /*
+     * 1 = Nam
+     * 2 = Nữ
+     */
     private int gioiTinh;
+
     private String cccd;
+
     private String danToc;
+
     private String doiTuong;
 
     public ThanhVien() {
@@ -76,5 +94,39 @@ public class ThanhVien {
 
     public void setDoiTuong(String doiTuong) {
         this.doiTuong = doiTuong;
+    }
+
+    public String getGioiTinhText() {
+
+        switch (gioiTinh) {
+
+            case 1:
+                return "Nam";
+
+            case 2:
+                return "Nữ";
+
+            default:
+                return "";
+        }
+    }
+
+    public boolean isChuHo() {
+        return "CHU_HO".equals(quanHe);
+    }
+
+    @Override
+    public String toString() {
+
+        return "ThanhVien{" +
+                "memberId='" + memberId + '\'' +
+                ", hoTen='" + hoTen + '\'' +
+                ", quanHe='" + quanHe + '\'' +
+                ", ngaySinh='" + ngaySinh + '\'' +
+                ", gioiTinh=" + gioiTinh +
+                ", cccd='" + cccd + '\'' +
+                ", danToc='" + danToc + '\'' +
+                ", doiTuong='" + doiTuong + '\'' +
+                '}';
     }
 }

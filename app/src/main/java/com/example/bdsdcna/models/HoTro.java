@@ -2,8 +2,21 @@ package com.example.bdsdcna.models;
 
 public class HoTro {
 
+    /*
+     * XAY_MOI
+     * SUA_CHUA
+     * KHAC
+     */
     private String loai;
+
+    /*
+     * Kinh phí đề xuất
+     */
     private long kinhPhiDeXuat;
+
+    /*
+     * Kinh phí đã hỗ trợ
+     */
     private long kinhPhiDaHoTro;
 
     public HoTro() {
@@ -31,5 +44,22 @@ public class HoTro {
 
     public void setKinhPhiDaHoTro(long kinhPhiDaHoTro) {
         this.kinhPhiDaHoTro = kinhPhiDaHoTro;
+    }
+
+    public long getKinhPhiConThieu() {
+        return kinhPhiDeXuat - kinhPhiDaHoTro;
+    }
+
+    public boolean daHoTroDu() {
+        return kinhPhiDaHoTro >= kinhPhiDeXuat;
+    }
+
+    @Override
+    public String toString() {
+        return "HoTro{" +
+                "loai='" + loai + '\'' +
+                ", kinhPhiDeXuat=" + kinhPhiDeXuat +
+                ", kinhPhiDaHoTro=" + kinhPhiDaHoTro +
+                '}';
     }
 }
