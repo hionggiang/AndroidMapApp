@@ -3,9 +3,20 @@ package com.example.bdsdcna.xulydulieu;
 import android.content.Context;
 import android.net.Uri;
 
-import com.example.bdsdcna.models.*;
+import com.example.bdsdcna.models.ChuHo;
+import com.example.bdsdcna.models.DiaChi;
+import com.example.bdsdcna.models.HoTro;
+import com.example.bdsdcna.models.Household;
+import com.example.bdsdcna.models.ThanhVien;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
@@ -43,21 +54,35 @@ public class ExcelImporter {
             if (row == null)
                 continue;
 
-            String sttHoStr = getValue(row.getCell(0));
+            String sttHoStr =
+                    getValue(row.getCell(0));
 
             if (sttHoStr.isEmpty())
                 continue;
 
-            int sttHo = Integer.parseInt(sttHoStr);
+            int sttHo;
+
+            try {
+
+                sttHo = Integer.parseInt(
+                        sttHoStr
+                );
+
+            } catch (Exception e) {
+
+                // Bỏ qua dòng tiêu đề
+                continue;
+            }
 
             Household household;
 
             if (!householdMap.containsKey(sttHo)) {
 
-                household = createHousehold(
-                        sttHo,
-                        row
-                );
+                household =
+                        createHousehold(
+                                sttHo,
+                                row
+                        );
 
                 householdMap.put(
                         sttHo,
@@ -67,7 +92,9 @@ public class ExcelImporter {
             } else {
 
                 household =
-                        householdMap.get(sttHo);
+                        householdMap.get(
+                                sttHo
+                        );
             }
 
             ThanhVien tv =
@@ -80,9 +107,12 @@ public class ExcelImporter {
         workbook.close();
         is.close();
 
-        return new ArrayList<>(
-                householdMap.values()
-        );
+        List<Household> households =
+                new ArrayList<>(
+                        householdMap.values()
+                );
+
+        return households;
     }
 
     private static Household createHousehold(
@@ -330,6 +360,46 @@ public class ExcelImporter {
             default:
 
                 return "";
+        }
+    }
+    public static void uploadToFirebase(
+            List<Household> households,
+            String loaiHo
+    ) {
+
+        String node;
+
+        switch (loaiHo) {
+
+            case "Hộ nghèo":
+                node = "ho_ngheo";
+                break;
+
+            case "Hộ cận nghèo":
+                node = "ho_can_ngheo";
+                break;
+
+            case "Hộ khó khăn":
+                node = "ho_kho_khan";
+                break;
+
+            default:
+                node = "gia_dinh_chinh_sach";
+                break;
+        }
+
+        DatabaseReference ref =
+                FirebaseDatabase.getInstance()
+                        .getReference("households")
+                        .child(node);
+
+        for (Household household : households) {
+
+            ref.child(
+                    household.getHouseholdId()
+            ).setValue(
+                    household
+            );
         }
     }
 }
