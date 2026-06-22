@@ -11,4 +11,16 @@ public class MapInfo {
     public String getMarkerColor() {
         return markerColor;
     }
+
+    public void setMarkerColor(String markerColor) {
+        this.markerColor = markerColor;
+    }
+
+    public boolean isVisible() {
+        return visible;
+    }
+
+    public void setVisible(boolean visible) {
+        this.visible = visible;
+    }
 }
