@@ -129,4 +129,7 @@ public class ThanhVien {
                 ", doiTuong='" + doiTuong + '\'' +
                 '}';
     }
+
+    public void setSttThanhVien(int i) {
+    }
 }

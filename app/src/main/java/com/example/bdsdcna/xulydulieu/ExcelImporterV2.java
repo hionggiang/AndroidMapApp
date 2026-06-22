@@ -2,636 +2,166 @@ package com.example.bdsdcna.xulydulieu;
 
 import android.content.Context;
 import android.net.Uri;
-
-import com.example.bdsdcna.models.ChuHo;
-import com.example.bdsdcna.models.DiaChi;
-import com.example.bdsdcna.models.DoiTuong;
-import com.example.bdsdcna.models.Household;
-import com.example.bdsdcna.models.ThanhVien;
-
+import com.example.bdsdcna.models.*;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.ss.usermodel.DateUtil;
-
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class ExcelImporterV2 {
 
-    public static List<Household> importExcel(
-            Context context,
-            Uri fileUri
-    ) throws Exception {
+    public static List<Household> importExcel(Context context, Uri fileUri, String loaiHo) throws Exception {
+        try (InputStream is = context.getContentResolver().openInputStream(fileUri);
+             Workbook workbook = WorkbookFactory.create(is)) {
 
-        InputStream is =
-                context.getContentResolver()
-                        .openInputStream(fileUri);
+            Sheet sheet = workbook.getSheetAt(0);
+            int totalRows = sheet.getLastRowNum();
+            int indexRowIndex = -1;
 
-        Workbook workbook =
-                WorkbookFactory.create(is);
+            // 1. Định vị nhanh hàng chứa chỉ mục (1), (2), (3)...
+            for (int i = 0; i <= totalRows; i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+                String cell0 = getValue(row.getCell(0));
+                if (cell0.contains("(1)") || cell0.equals("1")) {
+                    indexRowIndex = i;
+                    break;
+                }
+            }
+            if (indexRowIndex == -1) indexRowIndex = 2;
 
-        Sheet sheet =
-                workbook.getSheetAt(0);
-
-        Map<Integer,String> headers =
-                detectHeaders(sheet);
-
-        Map<Integer,Household> households =
-                new LinkedHashMap<>();
-
-        int currentSttHo = 0;
-
-        for(int r=1;r<=sheet.getLastRowNum();r++){
-
-            Row row = sheet.getRow(r);
-
-            if(row == null)
-                continue;
-
-            String sttHoValue =
-                    getByName(
-                            row,
-                            headers,
-                            "stt hộ"
-                    );
-
-            if(!sttHoValue.isEmpty()){
-
-                try{
-
-                    currentSttHo =
-                            Integer.parseInt(
-                                    sttHoValue
-                            );
-
-                }catch (Exception ignored){}
+            // 2. Tạo Map Dynamic Index chuẩn xác
+            Map<String, Integer> colMap = new HashMap<>();
+            Row indexRow = sheet.getRow(indexRowIndex);
+            if (indexRow != null) {
+                for (int c = 0; c < indexRow.getLastCellNum(); c++) {
+                    String cleanIdx = getValue(indexRow.getCell(c)).replaceAll("[() ]", "");
+                    if (!cleanIdx.isEmpty()) colMap.put("col_" + cleanIdx, c);
+                }
             }
 
-            if(currentSttHo == 0)
-                continue;
+            Map<Integer, Household> householdMap = new LinkedHashMap<>();
+            int currentSttHo = -1, fallbackSttHo = 1;
 
-            Household household;
+            // 3. Quét tuyến tính dòng dữ liệu
+            for (int i = indexRowIndex + 1; i <= totalRows; i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
 
-            if(!households.containsKey(
-                    currentSttHo
-            )){
+                String sttHoStr = getValue(row.getCell(colMap.getOrDefault("col_2", 1)));
+                if (!sttHoStr.isEmpty()) {
+                    try {
+                        currentSttHo = Integer.parseInt(sttHoStr);
+                    } catch (Exception e) {
+                        currentSttHo = fallbackSttHo;
+                    }
+                } else if (currentSttHo == -1) {
+                    currentSttHo = fallbackSttHo;
+                }
 
-                household =
-                        createHousehold(
-                                currentSttHo,
-                                row,
-                                headers
-                        );
+                // Nếu là hộ mới -> Tạo cấu trúc thông tin ban đầu
+                if (!householdMap.containsKey(currentSttHo)) {
+                    Household h = new Household();
+                    h.setStt(currentSttHo);
+                    h.setHouseholdId(String.format("HH%04d", currentSttHo));
+                    h.setThanhVien(new ArrayList<>());
 
-                households.put(
-                        currentSttHo,
-                        household
-                );
+                    ChuHo chuHo = new ChuHo();
+                    chuHo.setHoTen(getValue(row.getCell(colMap.getOrDefault("col_3", 2))));
+                    chuHo.setNamSinh(getYear(getValue(row.getCell(colMap.getOrDefault("col_6", 5)))));
+                    chuHo.setGioiTinh(parseGender(getValue(row.getCell(colMap.getOrDefault("col_7", 6)))));
+                    chuHo.setCccd(getValue(row.getCell(colMap.getOrDefault("col_8", 7))));
+                    chuHo.setDanToc(getValue(row.getCell(colMap.getOrDefault("col_9", 8))));
+                    h.setChuHo(chuHo);
 
-            }else{
+                    DiaChi diaChi = new DiaChi();
+                    diaChi.setTinh(getValue(row.getCell(colMap.getOrDefault("col_10", 9))));
+                    diaChi.setXa(getValue(row.getCell(colMap.getOrDefault("col_11", 10))));
+                    diaChi.setAp(getValue(row.getCell(colMap.getOrDefault("col_12", 11))));
+                    h.setDiaChi(diaChi);
 
-                household =
-                        households.get(
-                                currentSttHo
-                        );
+                    DoiTuong doiTuong = new DoiTuong();
+                    if (loaiHo != null) {
+                        doiTuong.setHoNgheo(loaiHo.equals("Hộ nghèo"));
+                        doiTuong.setHoCanNgheo(loaiHo.equals("Hộ cận nghèo"));
+                        doiTuong.setHoKhoKhan(loaiHo.equals("Hộ khó khăn"));
+                        doiTuong.setGiaDinhChinhSach(loaiHo.equals("Gia đình chính sách"));
+                    }
+                    doiTuong.setHoDanToc(checkChecked(getValue(row.getCell(colMap.getOrDefault("col_14", 13)))));
+                    doiTuong.setHoKhongKhaNangLaoDong(checkChecked(getValue(row.getCell(colMap.getOrDefault("col_15", 14)))));
+                    doiTuong.setHoBaoTroXaHoi(checkChecked(getValue(row.getCell(colMap.getOrDefault("col_16", 15)))));
+                    doiTuong.setNguoiCoCong(checkChecked(getValue(row.getCell(colMap.getOrDefault("col_17", 16)))));
+                    h.setDoiTuong(doiTuong);
+
+                    householdMap.put(currentSttHo, h);
+                    fallbackSttHo++;
+                }
+
+                // Thêm thành viên
+                String memberName = getValue(row.getCell(colMap.getOrDefault("col_4", 3)));
+                if (!memberName.isEmpty()) {
+                    ThanhVien tv = new ThanhVien();
+                    tv.setMemberId(UUID.randomUUID().toString());
+                    tv.setHoTen(memberName);
+                    tv.setQuanHe(convertRelation(getValue(row.getCell(colMap.getOrDefault("col_5", 4)))));
+                    tv.setNgaySinh(getValue(row.getCell(colMap.getOrDefault("col_6", 5))));
+                    tv.setGioiTinh(parseGender(getValue(row.getCell(colMap.getOrDefault("col_7", 6)))));
+                    tv.setCccd(getValue(row.getCell(colMap.getOrDefault("col_8", 7))));
+                    tv.setDanToc(getValue(row.getCell(colMap.getOrDefault("col_9", 8))));
+
+                    try {
+                        tv.setSttThanhVien(Integer.parseInt(getValue(row.getCell(colMap.getOrDefault("col_1", 0)))));
+                    } catch (Exception ignored) {}
+
+                    Household currentHousehold = householdMap.get(currentSttHo);
+                    if (currentHousehold != null) currentHousehold.getThanhVien().add(tv);
+                }
             }
-
-            ThanhVien member =
-                    createMember(
-                            row,
-                            headers
-                    );
-
-            if(member != null){
-
-                household
-                        .getThanhVien()
-                        .add(member);
-            }
-        }
-
-        workbook.close();
-        is.close();
-
-        return new ArrayList<>(
-                households.values()
-        );
-    }
-
-    private static Household createHousehold(
-            int sttHo,
-            Row row,
-            Map<Integer,String> headers
-    ){
-
-        Household h =
-                new Household();
-
-        // Tùy chỉnh setSttHo nếu trong model của bạn đặt tên khác (ví dụ: h.setStt(sttHo))
-        h.setStt(sttHo);
-
-        h.setHouseholdId(
-                String.format(
-                        "HH%05d",
-                        sttHo
-                )
-        );
-
-        // ================= CHỦ HỘ =================
-        ChuHo chuHo =
-                new ChuHo();
-
-        chuHo.setHoTen(
-                getByName(
-                        row,
-                        headers,
-                        "họ và tên chủ hộ"
-                )
-        );
-
-        chuHo.setCccd(
-                getByName(
-                        row,
-                        headers,
-                        "số cccd"
-                )
-        );
-
-        chuHo.setDanToc(
-                getByName(
-                        row,
-                        headers,
-                        "dân tộc"
-                )
-        );
-
-        chuHo.setGioiTinh(
-                parseGender(
-                        getByName(
-                                row,
-                                headers,
-                                "giới tính"
-                        )
-                )
-        );
-
-        // Bạn có thể bổ sung chuHo.setNgaySinh(...) nếu model ChuHo của bạn có trường này
-
-        h.setChuHo(chuHo);
-
-        // ================= ĐỊA CHỈ =================
-        DiaChi diaChi =
-                new DiaChi();
-
-        diaChi.setTinh(
-                getByName(
-                        row,
-                        headers,
-                        "tỉnh"
-                )
-        );
-
-        diaChi.setXa(
-                getByName(
-                        row,
-                        headers,
-                        "xã"
-                )
-        );
-
-        diaChi.setAp(
-                getByName(
-                        row,
-                        headers,
-                        "ấp"
-                )
-        );
-
-        String soNha =
-                getByName(
-                        row,
-                        headers,
-                        "số nhà"
-                );
-
-        diaChi.setDiaChiDayDu(
-                soNha
-                        + ", "
-                        + diaChi.getAp()
-                        + ", "
-                        + diaChi.getXa()
-                        + ", "
-                        + diaChi.getTinh()
-        );
-
-        h.setDiaChi(
-                diaChi
-        );
-
-        // Khởi tạo đối tượng tượng rỗng tránh NullPointerException khi mapStatusField
-        if (h.getDoiTuong() == null) {
-            h.setDoiTuong(new DoiTuong());
-        }
-
-        processExtraFields(
-                h,
-                row,
-                headers
-        );
-
-        return h;
-    }
-
-    private static ThanhVien createMember(
-            Row row,
-            Map<Integer,String> headers
-    ){
-
-        String name =
-                getByName(
-                        row,
-                        headers,
-                        "họ và tên thành viên"
-                );
-
-        if(name.isEmpty())
-            return null;
-
-        ThanhVien tv =
-                new ThanhVien();
-
-        tv.setMemberId(
-                UUID.randomUUID()
-                        .toString()
-        );
-
-        tv.setHoTen(
-                name
-        );
-
-        tv.setQuanHe(
-                parseRelation(
-                        getByName(
-                                row,
-                                headers,
-                                "mối quan hệ"
-                        )
-                )
-        );
-
-        tv.setNgaySinh(
-                normalizeDate(
-                        getByName(
-                                row,
-                                headers,
-                                "ngày, tháng, năm sinh"
-                        )
-                )
-        );
-
-        tv.setGioiTinh(
-                parseGender(
-                        getByName(
-                                row,
-                                headers,
-                                "giới tính"
-                        )
-                )
-        );
-
-        tv.setCccd(
-                getByName(
-                        row,
-                        headers,
-                        "số cccd"
-                )
-        );
-
-        tv.setDanToc(
-                getByName(
-                        row,
-                        headers,
-                        "dân tộc"
-                )
-        );
-
-        return tv;
-    }
-
-    private static void processExtraFields(
-            Household h,
-            Row row,
-            Map<Integer,String> headers
-    ){
-
-        Set<String> standard =
-                new HashSet<>(
-                        Arrays.asList(
-                                "stt",
-                                "stt hộ",
-                                "họ và tên chủ hộ",
-                                "họ và tên thành viên",
-                                "mối quan hệ",
-                                "ngày, tháng, năm sinh",
-                                "giới tính",
-                                "số cccd",
-                                "dân tộc",
-                                "tỉnh",
-                                "xã",
-                                "ấp",
-                                "số nhà"
-                        )
-                );
-
-        for(Integer col : headers.keySet()){
-
-            String header =
-                    headers.get(col);
-
-            if(standard.contains(header))
-                continue;
-
-            String value =
-                    getValue(
-                            row.getCell(col)
-                    );
-
-            if(value.isEmpty())
-                continue;
-
-            String key =
-                    toKey(header);
-
-            if(isStatusField(value)){
-
-                mapStatusField(
-                        h,
-                        key,
-                        true
-                );
-
-            }else {
-
-                h.getExtraFields()
-                        .put(
-                                key,
-                                value
-                        );
-            }
+            return new ArrayList<>(householdMap.values());
         }
     }
 
-    private static void mapStatusField(
-            Household h,
-            String key,
-            boolean value
-    ){
-
-        DoiTuong dt =
-                h.getDoiTuong();
-
-        try {
-
-            switch (key){
-
-                case "ho_ngheo":
-
-                    dt.setHoNgheo(value);
-                    break;
-
-                case "ho_can_ngheo":
-
-                    dt.setHoCanNgheo(value);
-                    break;
-
-                case "ho_kho_khan":
-
-                    dt.setHoKhoKhan(value);
-                    break;
-
-                case "gia_dinh_chinh_sach":
-
-                    dt.setGiaDinhChinhSach(value);
-                    break;
-
-                default:
-
-                    h.getExtraFields()
-                            .put(
-                                    key,
-                                    value
-                            );
-                    break;
-            }
-
-        }catch (Exception e){
-
-            h.getExtraFields()
-                    .put(
-                            key,
-                            value
-                    );
-        }
+    private static boolean checkChecked(String val) {
+        return val.equalsIgnoreCase("x") || val.equals("1") || val.equalsIgnoreCase("true");
     }
 
-    private static boolean isStatusField(
-            String value
-    ){
-
-        String v =
-                value.trim()
-                        .toLowerCase();
-
-        return v.equals("x")
-                || v.equals("✓")
-                || v.equals("1")
-                || v.equals("có")
-                || v.equals("yes");
+    private static int parseGender(String val) {
+        val = val.toLowerCase();
+        return (val.contains("nam") || val.equals("1")) ? 1 : ((val.contains("nữ") || val.contains("nu") || val.equals("2")) ? 2 : 0);
     }
 
-    private static String parseRelation(
-            String value
-    ){
-
-        value =
-                value.toLowerCase();
-
-        if(value.equals("1")
-                || value.contains("chủ"))
-            return "CHU_HO";
-
-        if(value.equals("2")
-                || value.contains("vợ")
-                || value.contains("chồng"))
-            return "VO_CHONG";
-
-        if(value.equals("3")
-                || value.contains("con"))
-            return "CON";
-
-        if(value.equals("4")
-                || value.contains("bố")
-                || value.contains("mẹ"))
-            return "BO_ME";
-
+    private static String convertRelation(String val) {
+        val = val.toLowerCase();
+        if (val.contains("chủ") || val.equals("1")) return "CHU_HO";
+        if (val.contains("vợ") || val.contains("chồng") || val.equals("2")) return "VO_CHONG";
+        if (val.contains("con") || val.equals("3")) return "CON";
+        if (val.contains("bố") || val.contains("mẹ") || val.equals("4")) return "BO_ME";
         return "KHAC";
     }
 
-    private static int parseGender(
-            String value
-    ){
-
-        value =
-                value.trim()
-                        .toLowerCase();
-
-        if(value.equals("nam"))
-            return 1;
-
-        if(value.equals("nữ")
-                || value.equals("nu"))
-            return 2;
-
-        return 0;
-    }
-
-    private static String normalizeDate(
-            String value
-    ){
-
-        if(value.matches("\\d{4}")){
-
-            return "01/01/" + value;
-        }
-
-        return value;
-    }
-
-    private static String getByName(
-            Row row,
-            Map<Integer,String> headers,
-            String keyword
-    ){
-
-        keyword =
-                keyword.toLowerCase();
-
-        for(Integer col : headers.keySet()){
-
-            String h =
-                    headers.get(col);
-
-            if(h.contains(keyword)){
-
-                return getValue(
-                        row.getCell(col)
-                );
+    private static int getYear(String date) {
+        try {
+            date = date.trim();
+            if (date.contains("/") || date.contains("-")) {
+                String[] parts = date.split("[/\\-]");
+                for (String p : parts) if (p.trim().length() == 4) return Integer.parseInt(p.trim());
             }
-        }
-
-        return "";
+            return Integer.parseInt(date.substring(0, Math.min(date.length(), 4)));
+        } catch (Exception e) { return 0; }
     }
 
-    private static Map<Integer,String>
-    detectHeaders(Sheet sheet){
-
-        Map<Integer,String> map =
-                new LinkedHashMap<>();
-
-        Row row =
-                sheet.getRow(0);
-
-        if(row == null)
-            return map;
-
-        for(int c=0;c<row.getLastCellNum();c++){
-
-            String value =
-                    getValue(
-                            row.getCell(c)
-                    );
-
-            map.put(
-                    c,
-                    normalizeHeader(value)
-            );
-        }
-
-        return map;
-    }
-
-    private static String normalizeHeader(
-            String value
-    ){
-
-        return value
-                .trim()
-                .toLowerCase()
-                .replace("\n"," ")
-                .replace("  "," ");
-    }
-
-    private static String toKey(
-            String text
-    ){
-
-        text =
-                text.replaceAll(
-                        "[^a-zA-Z0-9À-ỹ ]",
-                        ""
-                );
-
-        text =
-                text.trim()
-                        .replace(" ","_");
-
-        return text;
-    }
-
-    private static String getValue(
-            Cell cell
-    ){
-
-        if(cell == null)
-            return "";
-
-        switch(cell.getCellType()){
-
-            case STRING:
-
-                return cell
-                        .getStringCellValue()
-                        .trim();
-
+    private static String getValue(Cell cell) {
+        if (cell == null) return "";
+        switch (cell.getCellType()) {
+            case STRING: return cell.getStringCellValue().trim();
             case NUMERIC:
-
-                if(DateUtil
-                        .isCellDateFormatted(
-                                cell
-                        )){
-
-                    return new SimpleDateFormat(
-                            "dd/MM/yyyy",
-                            Locale.getDefault()
-                    ).format(
-                            cell.getDateCellValue()
-                    );
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(cell.getDateCellValue());
                 }
-
-                return String.valueOf(
-                        (long)
-                                cell.getNumericCellValue()
-                );
-
-            case BOOLEAN:
-
-                return String.valueOf(
-                        cell.getBooleanCellValue()
-                );
-
-            default:
-
-                return "";
+                double num = cell.getNumericCellValue();
+                return num == (long) num ? String.valueOf((long) num) : String.valueOf(num);
+            case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
+            default: return "";
         }
     }
 }
