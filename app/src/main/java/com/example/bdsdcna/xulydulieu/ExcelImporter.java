@@ -3,9 +3,20 @@ package com.example.bdsdcna.xulydulieu;
 import android.content.Context;
 import android.net.Uri;
 
-import com.example.bdsdcna.models.*;
+import com.example.bdsdcna.models.ChuHo;
+import com.example.bdsdcna.models.DiaChi;
+import com.example.bdsdcna.models.HoTro;
+import com.example.bdsdcna.models.Household;
+import com.example.bdsdcna.models.ThanhVien;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
@@ -33,8 +44,8 @@ public class ExcelImporter {
         Sheet sheet =
                 workbook.getSheetAt(0);
 
-        List<Household> households =
-                new ArrayList<>();
+        Map<Integer, Household> householdMap =
+                new LinkedHashMap<>();
 
         for (int i = 1; i <= sheet.getLastRowNum(); i++) {
 
@@ -43,37 +54,74 @@ public class ExcelImporter {
             if (row == null)
                 continue;
 
-            String sttStr =
+            String sttHoStr =
                     getValue(row.getCell(0));
 
-            if (sttStr.isEmpty())
+            if (sttHoStr.isEmpty())
                 continue;
 
-            int stt =
-                    Integer.parseInt(sttStr);
+            int sttHo;
 
-            Household household =
-                    createHousehold(
-                            stt,
-                            row
-                    );
+            try {
 
-            households.add(
-                    household
-            );
+                sttHo = Integer.parseInt(
+                        sttHoStr
+                );
+
+            } catch (Exception e) {
+
+                // Bỏ qua dòng tiêu đề
+                continue;
+            }
+
+            Household household;
+
+            if (!householdMap.containsKey(sttHo)) {
+
+                household =
+                        createHousehold(
+                                sttHo,
+                                row
+                        );
+
+                householdMap.put(
+                        sttHo,
+                        household
+                );
+
+            } else {
+
+                household =
+                        householdMap.get(
+                                sttHo
+                        );
+            }
+
+            ThanhVien tv =
+                    createMember(row);
+
+            household.getThanhVien()
+                    .add(tv);
         }
 
         workbook.close();
         is.close();
 
+        List<Household> households =
+                new ArrayList<>(
+                        householdMap.values()
+                );
+
         return households;
     }
+
     private static Household createHousehold(
             int sttHo,
             Row row
     ) {
 
-        Household h = new Household();
+        Household h =
+                new Household();
 
         h.setHouseholdId(
                 String.format(
@@ -84,100 +132,70 @@ public class ExcelImporter {
 
         h.setStt(sttHo);
 
-        // =====================
         // CHỦ HỘ
-        // =====================
 
-        ChuHo chuHo = new ChuHo();
+        ChuHo chuHo =
+                new ChuHo();
 
         chuHo.setHoTen(
-                safe(
-                        getValue(row.getCell(1))
-                )
+                getValue(row.getCell(2))
         );
 
         chuHo.setNamSinh(
-                parseInt(
-                        getValue(row.getCell(2))
+                getYear(
+                        getValue(row.getCell(5))
                 )
         );
 
-        chuHo.setGioiTinh(0);
-        chuHo.setCccd("");
-        chuHo.setDanToc("");
-        chuHo.setSoDienThoai("");
+        chuHo.setGioiTinh(
+                parseInt(
+                        getValue(row.getCell(6))
+                )
+        );
+
+        chuHo.setCccd(
+                getValue(row.getCell(7))
+        );
+
+        chuHo.setDanToc(
+                getValue(row.getCell(8))
+        );
 
         h.setChuHo(chuHo);
 
-        // =====================
         // ĐỊA CHỈ
-        // =====================
 
-        DiaChi diaChi = new DiaChi();
+        DiaChi diaChi =
+                new DiaChi();
 
-        diaChi.setAp("");
-        diaChi.setXa("");
-        diaChi.setHuyen("");
-        diaChi.setTinh("");
+        // sửa tên setter theo model của bạn
 
-        diaChi.setDiaChiDayDu(
-                safe(
-                        getValue(row.getCell(3))
-                )
-        );
+        try {
+            diaChi.setAp(
+                    getValue(row.getCell(9))
+            );
+
+            diaChi.setXa(
+                    getValue(row.getCell(10))
+            );
+
+            diaChi.setHuyen(
+                    getValue(row.getCell(11))
+            );
+
+            diaChi.setTinh(
+                    getValue(row.getCell(12))
+            );
+        } catch (Exception ignored) {}
 
         h.setDiaChi(diaChi);
 
-        // =====================
-        // HOÀN CẢNH
-        // =====================
-
-        HoanCanh hoanCanh =
-                new HoanCanh();
-
-        hoanCanh.setMoTa(
-                safe(
-                        getValue(row.getCell(4))
-                )
-        );
-
-        hoanCanh.setHienTrangNha("");
-        hoanCanh.setDienTichNha(null);
-        hoanCanh.setCoQSDD(false);
-        hoanCanh.setGhiChu("");
-
-        h.setHoanCanh(
-                hoanCanh
-        );
-
-        // =====================
-        // ĐỐI TƯỢNG
-        // =====================
-
-        DoiTuong doiTuong =
-                new DoiTuong();
-
-        doiTuong.setGiaDinhChinhSach(false);
-        doiTuong.setHoNgheo(false);
-        doiTuong.setHoCanNgheo(false);
-        doiTuong.setHoKhoKhan(false);
-        doiTuong.setMstb(false);
-
-        h.setDoiTuong(
-                doiTuong
-        );
-
-        // =====================
         // HỖ TRỢ
-        // =====================
 
         HoTro hoTro =
                 new HoTro();
 
-        hoTro.setLoai(
-                "XAY_MOI"
-        );
-
+        hoTro.setLoai("XAY_MOI");
         hoTro.setKinhPhiDeXuat(
                 60000000
         );
@@ -186,66 +204,20 @@ public class ExcelImporter {
                 0
         );
 
-        h.setHoTro(
-                hoTro
-        );
+        h.setHoTro(hoTro);
 
-        // =====================
-        // GPS
-        // =====================
-
-        GPS gps =
-                new GPS();
-
-        gps.setLatitude(0.0);
-        gps.setLongitude(0.0);
-        gps.setAccuracy(0.0);
-        gps.setNgayCapNhat("");
-
-        h.setGPS(gps);
-
-        // =====================
-        // CAMERA360
-        // =====================
-
-        Camera360 camera360 =
-                new Camera360();
-
-        camera360.setUrl("");
-        camera360.setThumbnail("");
-        camera360.setCapturedDate("");
-
-        h.setCamera360(
-                camera360
-        );
-
-        // =====================
-        // IMAGES
-        // =====================
-
-        Images images =
-                new Images();
-
-        images.setBefore(
-                new ArrayList<>()
-        );
-
-        images.setDuring(
-                new ArrayList<>()
-        );
-
-        images.setAfter(
-                new ArrayList<>()
-        );
-
-        h.setImages(images);
-
-        // =====================
         // THÀNH VIÊN
-        // =====================
 
-        List<ThanhVien> ds =
-                new ArrayList<>();
+        h.setThanhVien(
+                new ArrayList<>()
+        );
+
+        return h;
+    }
+
+    private static ThanhVien createMember(
+            Row row
+    ) {
 
         ThanhVien tv =
                 new ThanhVien();
@@ -256,73 +228,92 @@ public class ExcelImporter {
         );
 
         tv.setHoTen(
-                chuHo.getHoTen()
+                getValue(row.getCell(3))
         );
 
         tv.setQuanHe(
-                "CHU_HO"
-        );
-
-        tv.setNgaySinh(
-                String.valueOf(
-                        chuHo.getNamSinh()
+                convertRelation(
+                        getValue(row.getCell(4))
                 )
         );
 
-        tv.setGioiTinh(0);
-        tv.setCccd("");
-        tv.setDanToc("");
-
-        ds.add(tv);
-
-        h.setThanhVien(ds);
-
-        // =====================
-        // THỐNG KÊ
-        // =====================
-
-        ThongKe thongKe =
-                new ThongKe();
-
-        thongKe.setTongNhanKhau(1);
-        thongKe.setSoLaoDong(0);
-        thongKe.setSoNguoiPhuThuoc(1);
-
-        h.setThongKe(
-                thongKe
+        tv.setNgaySinh(
+                getValue(row.getCell(5))
         );
 
-        // =====================
-        // TIẾN ĐỘ
-        // =====================
-
-        TienDo tienDo =
-                new TienDo();
-
-        tienDo.setTrangThai(
-                "CHO_KHAO_SAT"
+        tv.setGioiTinh(
+                parseInt(
+                        getValue(row.getCell(6))
+                )
         );
 
-        tienDo.setPhanTramHoanThanh(0);
-
-        tienDo.setNgayKhoiCong("");
-        tienDo.setNgayHoanThanh("");
-        tienDo.setGhiChu("");
-
-        h.setTienDo(
-                tienDo
+        tv.setCccd(
+                getValue(row.getCell(7))
         );
 
-        // =====================
-        // TÀI TRỢ
-        // =====================
-
-        h.setTaiTro(
-                new ArrayList<>()
+        tv.setDanToc(
+                getValue(row.getCell(8))
         );
 
-        return h;
+        return tv;
     }
+
+    private static String convertRelation(
+            String value
+    ) {
+
+        value =
+                value.toLowerCase();
+
+        if (value.contains("chủ"))
+            return "CHU_HO";
+
+        if (value.contains("vợ")
+                || value.contains("chồng"))
+            return "VO_CHONG";
+
+        if (value.contains("con"))
+            return "CON";
+
+        if (value.contains("bố")
+                || value.contains("mẹ"))
+            return "BO_ME";
+
+        return "KHAC";
+    }
+
+    private static int parseInt(
+            String value
+    ) {
+
+        try {
+
+            return Integer.parseInt(
+                    value
+            );
+
+        } catch (Exception e) {
+
+            return 0;
+        }
+    }
+
+    private static int getYear(
+            String date
+    ) {
+
+        try {
+
+            return Integer.parseInt(
+                    date.substring(0,4)
+            );
+
+        } catch (Exception e) {
+
+            return 0;
+        }
+    }
+
     private static String getValue(
             Cell cell
     ) {
@@ -371,26 +362,44 @@ public class ExcelImporter {
                 return "";
         }
     }
-    private static String safe(
-            String value
-    ) {
-        return value == null
-                ? ""
-                : value.trim();
-    }
-    private static int parseInt(
-            String value
+    public static void uploadToFirebase(
+            List<Household> households,
+            String loaiHo
     ) {
 
-        try {
+        String node;
 
-            return Integer.parseInt(
-                    value
+        switch (loaiHo) {
+
+            case "Hộ nghèo":
+                node = "ho_ngheo";
+                break;
+
+            case "Hộ cận nghèo":
+                node = "ho_can_ngheo";
+                break;
+
+            case "Hộ khó khăn":
+                node = "ho_kho_khan";
+                break;
+
+            default:
+                node = "gia_dinh_chinh_sach";
+                break;
+        }
+
+        DatabaseReference ref =
+                FirebaseDatabase.getInstance()
+                        .getReference("households")
+                        .child(node);
+
+        for (Household household : households) {
+
+            ref.child(
+                    household.getHouseholdId()
+            ).setValue(
+                    household
             );
-
-        } catch (Exception e) {
-
-            return 0;
         }
     }
 }
