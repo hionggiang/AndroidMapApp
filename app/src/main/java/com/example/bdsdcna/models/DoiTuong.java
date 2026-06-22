@@ -26,4 +26,28 @@ public class DoiTuong {
     public boolean isHoKhoKhan() {
         return hoKhoKhan;
     }
+
+    public void setGiaDinhChinhSach(boolean giaDinhChinhSach) {
+        this.giaDinhChinhSach = giaDinhChinhSach;
+    }
+
+    public void setHoNgheo(boolean hoNgheo) {
+        this.hoNgheo = hoNgheo;
+    }
+
+    public void setHoCanNgheo(boolean hoCanNgheo) {
+        this.hoCanNgheo = hoCanNgheo;
+    }
+
+    public void setHoKhoKhan(boolean hoKhoKhan) {
+        this.hoKhoKhan = hoKhoKhan;
+    }
+
+    public boolean isMstb() {
+        return mstb;
+    }
+
+    public void setMstb(boolean mstb) {
+        this.mstb = mstb;
+    }
 }

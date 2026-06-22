@@ -22,4 +22,16 @@ public class Images {
     public List<String> getAfter() {
         return after;
     }
+
+    public void setBefore(List<String> before) {
+        this.before = before;
+    }
+
+    public void setDuring(List<String> during) {
+        this.during = during;
+    }
+
+    public void setAfter(List<String> after) {
+        this.after = after;
+    }
 }

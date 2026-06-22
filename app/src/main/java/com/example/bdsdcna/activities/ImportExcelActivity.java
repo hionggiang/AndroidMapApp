@@ -12,7 +12,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.bdsdcna.R;
 import com.example.bdsdcna.models.Household;
 import com.example.bdsdcna.xulydulieu.ExcelImporter;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.List;
 
@@ -21,13 +22,14 @@ public class ImportExcelActivity
 
     private static final int PICK_EXCEL = 200;
 
-    private FirebaseFirestore firestore;
+    private DatabaseReference householdRef;
 
     private Uri excelUri;
 
     @Override
     protected void onCreate(
-            Bundle savedInstanceState) {
+            Bundle savedInstanceState
+    ) {
 
         super.onCreate(savedInstanceState);
 
@@ -35,8 +37,10 @@ public class ImportExcelActivity
                 R.layout.activity_import_excel
         );
 
-        firestore =
-                FirebaseFirestore.getInstance();
+        householdRef =
+                FirebaseDatabase
+                        .getInstance()
+                        .getReference("households");
 
         Button btnSelect =
                 findViewById(
@@ -76,7 +80,8 @@ public class ImportExcelActivity
     protected void onActivityResult(
             int requestCode,
             int resultCode,
-            @Nullable Intent data) {
+            @Nullable Intent data
+    ) {
 
         super.onActivityResult(
                 requestCode,
@@ -84,9 +89,9 @@ public class ImportExcelActivity
                 data
         );
 
-        if(requestCode == PICK_EXCEL
+        if (requestCode == PICK_EXCEL
                 && resultCode == RESULT_OK
-                && data != null){
+                && data != null) {
 
             excelUri =
                     data.getData();
@@ -101,7 +106,7 @@ public class ImportExcelActivity
 
     private void importExcel() {
 
-        if(excelUri == null){
+        if (excelUri == null) {
 
             Toast.makeText(
                     this,
@@ -120,46 +125,81 @@ public class ImportExcelActivity
                             excelUri
                     );
 
-            saveToFirestore(
+            saveToRealtimeDatabase(
                     households
             );
 
-        }
-        catch (Exception e){
+        } catch (Exception e) {
 
             e.printStackTrace();
 
             Toast.makeText(
                     this,
-                    e.getMessage(),
+                    "Lỗi đọc Excel: "
+                            + e.getMessage(),
                     Toast.LENGTH_LONG
             ).show();
         }
     }
 
-    private void saveToFirestore(
+    private void saveToRealtimeDatabase(
             List<Household> households
-    ){
+    ) {
 
-        for(Household h : households){
+        if (households == null
+                || households.isEmpty()) {
 
-            firestore.collection(
-                            "households"
-                    )
+            Toast.makeText(
+                    this,
+                    "Không có dữ liệu",
+                    Toast.LENGTH_SHORT
+            ).show();
 
-                    .document(
-                            h.getHouseholdId()
-                    )
-
-                    .set(h);
+            return;
         }
 
-        Toast.makeText(
-                this,
-                "Import thành công "
-                        + households.size()
-                        + " hộ",
-                Toast.LENGTH_LONG
-        ).show();
+        int total =
+                households.size();
+
+        final int[] success =
+                {0};
+
+        for (Household h : households) {
+
+            householdRef
+                    .child(
+                            h.getHouseholdId()
+                    )
+                    .setValue(h)
+
+                    .addOnSuccessListener(
+                            unused -> {
+
+                                success[0]++;
+
+                                if (success[0]
+                                        == total) {
+
+                                    Toast.makeText(
+                                            this,
+                                            "Import thành công "
+                                                    + total
+                                                    + " hộ",
+                                            Toast.LENGTH_LONG
+                                    ).show();
+                                }
+                            })
+
+                    .addOnFailureListener(
+                            e -> Toast.makeText(
+                                    this,
+                                    "Lỗi lưu "
+                                            + h.getHouseholdId()
+                                            + "\n"
+                                            + e.getMessage(),
+                                    Toast.LENGTH_LONG
+                            ).show()
+                    );
+        }
     }
 }

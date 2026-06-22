@@ -33,8 +33,8 @@ public class ExcelImporter {
         Sheet sheet =
                 workbook.getSheetAt(0);
 
-        Map<Integer, Household> householdMap =
-                new LinkedHashMap<>();
+        List<Household> households =
+                new ArrayList<>();
 
         for (int i = 1; i <= sheet.getLastRowNum(); i++) {
 
@@ -43,55 +43,37 @@ public class ExcelImporter {
             if (row == null)
                 continue;
 
-            String sttHoStr = getValue(row.getCell(0));
+            String sttStr =
+                    getValue(row.getCell(0));
 
-            if (sttHoStr.isEmpty())
+            if (sttStr.isEmpty())
                 continue;
 
-            int sttHo = Integer.parseInt(sttHoStr);
+            int stt =
+                    Integer.parseInt(sttStr);
 
-            Household household;
+            Household household =
+                    createHousehold(
+                            stt,
+                            row
+                    );
 
-            if (!householdMap.containsKey(sttHo)) {
-
-                household = createHousehold(
-                        sttHo,
-                        row
-                );
-
-                householdMap.put(
-                        sttHo,
-                        household
-                );
-
-            } else {
-
-                household =
-                        householdMap.get(sttHo);
-            }
-
-            ThanhVien tv =
-                    createMember(row);
-
-            household.getThanhVien()
-                    .add(tv);
+            households.add(
+                    household
+            );
         }
 
         workbook.close();
         is.close();
 
-        return new ArrayList<>(
-                householdMap.values()
-        );
+        return households;
     }
-
     private static Household createHousehold(
             int sttHo,
             Row row
     ) {
 
-        Household h =
-                new Household();
+        Household h = new Household();
 
         h.setHouseholdId(
                 String.format(
@@ -102,70 +84,100 @@ public class ExcelImporter {
 
         h.setStt(sttHo);
 
+        // =====================
         // CHỦ HỘ
+        // =====================
 
-        ChuHo chuHo =
-                new ChuHo();
+        ChuHo chuHo = new ChuHo();
 
         chuHo.setHoTen(
-                getValue(row.getCell(2))
+                safe(
+                        getValue(row.getCell(1))
+                )
         );
 
         chuHo.setNamSinh(
-                getYear(
-                        getValue(row.getCell(5))
-                )
-        );
-
-        chuHo.setGioiTinh(
                 parseInt(
-                        getValue(row.getCell(6))
+                        getValue(row.getCell(2))
                 )
         );
 
-        chuHo.setCccd(
-                getValue(row.getCell(7))
-        );
-
-        chuHo.setDanToc(
-                getValue(row.getCell(8))
-        );
+        chuHo.setGioiTinh(0);
+        chuHo.setCccd("");
+        chuHo.setDanToc("");
+        chuHo.setSoDienThoai("");
 
         h.setChuHo(chuHo);
 
+        // =====================
         // ĐỊA CHỈ
+        // =====================
 
-        DiaChi diaChi =
-                new DiaChi();
+        DiaChi diaChi = new DiaChi();
 
-        // sửa tên setter theo model của bạn
+        diaChi.setAp("");
+        diaChi.setXa("");
+        diaChi.setHuyen("");
+        diaChi.setTinh("");
 
-        try {
-            diaChi.setAp(
-                    getValue(row.getCell(9))
-            );
-
-            diaChi.setXa(
-                    getValue(row.getCell(10))
-            );
-
-            diaChi.setHuyen(
-                    getValue(row.getCell(11))
-            );
-
-            diaChi.setTinh(
-                    getValue(row.getCell(12))
-            );
-        } catch (Exception ignored) {}
+        diaChi.setDiaChiDayDu(
+                safe(
+                        getValue(row.getCell(3))
+                )
+        );
 
         h.setDiaChi(diaChi);
 
+        // =====================
+        // HOÀN CẢNH
+        // =====================
+
+        HoanCanh hoanCanh =
+                new HoanCanh();
+
+        hoanCanh.setMoTa(
+                safe(
+                        getValue(row.getCell(4))
+                )
+        );
+
+        hoanCanh.setHienTrangNha("");
+        hoanCanh.setDienTichNha(null);
+        hoanCanh.setCoQSDD(false);
+        hoanCanh.setGhiChu("");
+
+        h.setHoanCanh(
+                hoanCanh
+        );
+
+        // =====================
+        // ĐỐI TƯỢNG
+        // =====================
+
+        DoiTuong doiTuong =
+                new DoiTuong();
+
+        doiTuong.setGiaDinhChinhSach(false);
+        doiTuong.setHoNgheo(false);
+        doiTuong.setHoCanNgheo(false);
+        doiTuong.setHoKhoKhan(false);
+        doiTuong.setMstb(false);
+
+        h.setDoiTuong(
+                doiTuong
+        );
+
+        // =====================
         // HỖ TRỢ
+        // =====================
 
         HoTro hoTro =
                 new HoTro();
 
-        hoTro.setLoai("XAY_MOI");
+        hoTro.setLoai(
+                "XAY_MOI"
+        );
+
         hoTro.setKinhPhiDeXuat(
                 60000000
         );
@@ -174,20 +186,66 @@ public class ExcelImporter {
                 0
         );
 
-        h.setHoTro(hoTro);
+        h.setHoTro(
+                hoTro
+        );
 
-        // THÀNH VIÊN
+        // =====================
+        // GPS
+        // =====================
 
-        h.setThanhVien(
+        GPS gps =
+                new GPS();
+
+        gps.setLatitude(0.0);
+        gps.setLongitude(0.0);
+        gps.setAccuracy(0.0);
+        gps.setNgayCapNhat("");
+
+        h.setGPS(gps);
+
+        // =====================
+        // CAMERA360
+        // =====================
+
+        Camera360 camera360 =
+                new Camera360();
+
+        camera360.setUrl("");
+        camera360.setThumbnail("");
+        camera360.setCapturedDate("");
+
+        h.setCamera360(
+                camera360
+        );
+
+        // =====================
+        // IMAGES
+        // =====================
+
+        Images images =
+                new Images();
+
+        images.setBefore(
                 new ArrayList<>()
         );
 
-        return h;
-    }
+        images.setDuring(
+                new ArrayList<>()
+        );
 
-    private static ThanhVien createMember(
-            Row row
-    ) {
+        images.setAfter(
+                new ArrayList<>()
+        );
+
+        h.setImages(images);
+
+        // =====================
+        // THÀNH VIÊN
+        // =====================
+
+        List<ThanhVien> ds =
+                new ArrayList<>();
 
         ThanhVien tv =
                 new ThanhVien();
@@ -198,92 +256,73 @@ public class ExcelImporter {
         );
 
         tv.setHoTen(
-                getValue(row.getCell(3))
+                chuHo.getHoTen()
         );
 
         tv.setQuanHe(
-                convertRelation(
-                        getValue(row.getCell(4))
-                )
+                "CHU_HO"
         );
 
         tv.setNgaySinh(
-                getValue(row.getCell(5))
-        );
-
-        tv.setGioiTinh(
-                parseInt(
-                        getValue(row.getCell(6))
+                String.valueOf(
+                        chuHo.getNamSinh()
                 )
         );
 
-        tv.setCccd(
-                getValue(row.getCell(7))
+        tv.setGioiTinh(0);
+        tv.setCccd("");
+        tv.setDanToc("");
+
+        ds.add(tv);
+
+        h.setThanhVien(ds);
+
+        // =====================
+        // THỐNG KÊ
+        // =====================
+
+        ThongKe thongKe =
+                new ThongKe();
+
+        thongKe.setTongNhanKhau(1);
+        thongKe.setSoLaoDong(0);
+        thongKe.setSoNguoiPhuThuoc(1);
+
+        h.setThongKe(
+                thongKe
         );
 
-        tv.setDanToc(
-                getValue(row.getCell(8))
+        // =====================
+        // TIẾN ĐỘ
+        // =====================
+
+        TienDo tienDo =
+                new TienDo();
+
+        tienDo.setTrangThai(
+                "CHO_KHAO_SAT"
         );
 
-        return tv;
+        tienDo.setPhanTramHoanThanh(0);
+
+        tienDo.setNgayKhoiCong("");
+        tienDo.setNgayHoanThanh("");
+        tienDo.setGhiChu("");
+
+        h.setTienDo(
+                tienDo
+        );
+
+        // =====================
+        // TÀI TRỢ
+        // =====================
+
+        h.setTaiTro(
+                new ArrayList<>()
+        );
+
+        return h;
     }
-
-    private static String convertRelation(
-            String value
-    ) {
-
-        value =
-                value.toLowerCase();
-
-        if (value.contains("chủ"))
-            return "CHU_HO";
-
-        if (value.contains("vợ")
-                || value.contains("chồng"))
-            return "VO_CHONG";
-
-        if (value.contains("con"))
-            return "CON";
-
-        if (value.contains("bố")
-                || value.contains("mẹ"))
-            return "BO_ME";
-
-        return "KHAC";
-    }
-
-    private static int parseInt(
-            String value
-    ) {
-
-        try {
-
-            return Integer.parseInt(
-                    value
-            );
-
-        } catch (Exception e) {
-
-            return 0;
-        }
-    }
-
-    private static int getYear(
-            String date
-    ) {
-
-        try {
-
-            return Integer.parseInt(
-                    date.substring(0,4)
-            );
-
-        } catch (Exception e) {
-
-            return 0;
-        }
-    }
-
     private static String getValue(
             Cell cell
     ) {
@@ -330,6 +369,28 @@ public class ExcelImporter {
             default:
 
                 return "";
+        }
+    }
+    private static String safe(
+            String value
+    ) {
+        return value == null
+                ? ""
+                : value.trim();
+    }
+    private static int parseInt(
+            String value
+    ) {
+
+        try {
+
+            return Integer.parseInt(
+                    value
+            );
+
+        } catch (Exception e) {
+
+            return 0;
         }
     }
 }
