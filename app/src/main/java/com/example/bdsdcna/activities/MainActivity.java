@@ -1,51 +1,124 @@
 package com.example.bdsdcna.activities;
 
-import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 
 import com.example.bdsdcna.R;
+import com.example.bdsdcna.fragments.HouseListFragment;
+import com.example.bdsdcna.fragments.MapFragment;
+import com.example.bdsdcna.fragments.NotificationFragment;
+import com.example.bdsdcna.fragments.ProfileFragment;
+import com.example.bdsdcna.fragments.StatisticFragment;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity
+        extends AppCompatActivity {
 
-    private Button btnImportExcel;
-    private Button btnUploadImage;
+    private TextView txtTitle;
+    private BottomNavigationView bottomNavigation;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(
+            Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        btnImportExcel =
-                findViewById(R.id.btnImportExcel);
+        setContentView(
+                R.layout.activity_main);
 
-        btnUploadImage =
-                findViewById(R.id.btnUploadImage);
+        txtTitle =
+                findViewById(R.id.txtTitle);
 
-        btnImportExcel.setOnClickListener(v -> {
+        bottomNavigation =
+                findViewById(
+                        R.id.bottomNavigation);
 
-            Intent intent =
-                    new Intent(
-                            MainActivity.this,
-                            ImportExcelActivity.class
-                    );
+        loadFragment(
+                new MapFragment());
 
-            startActivity(intent);
+        txtTitle.setText(
+                "Bản đồ");
 
-        });
+        bottomNavigation.setSelectedItemId(
+                R.id.nav_map);
 
-        btnUploadImage.setOnClickListener(v -> {
+        bottomNavigation
+                .setOnItemSelectedListener(
+                        item -> {
 
-            Intent intent =
-                    new Intent(
-                            MainActivity.this,
-                            UploadActivity.class
-                    );
+                            int id =
+                                    item.getItemId();
 
-            startActivity(intent);
+                            if(id == R.id.nav_map){
 
-        });
+                                txtTitle.setText(
+                                        "Bản đồ");
+
+                                loadFragment(
+                                        new MapFragment());
+
+                                return true;
+                            }
+
+                            if(id == R.id.nav_house){
+
+                                txtTitle.setText(
+                                        "Danh sách hộ");
+
+                                loadFragment(
+                                        new HouseListFragment());
+
+                                return true;
+                            }
+
+                            if(id == R.id.nav_stat){
+
+                                txtTitle.setText(
+                                        "Thống kê");
+
+                                loadFragment(
+                                        new StatisticFragment());
+
+                                return true;
+                            }
+
+                            if(id == R.id.nav_notify){
+
+                                txtTitle.setText(
+                                        "Thông báo");
+
+                                loadFragment(
+                                        new NotificationFragment());
+
+                                return true;
+                            }
+
+                            if(id == R.id.nav_profile){
+
+                                txtTitle.setText(
+                                        "Cá nhân");
+
+                                loadFragment(
+                                        new ProfileFragment());
+
+                                return true;
+                            }
+
+                            return false;
+                        });
+    }
+
+    private void loadFragment(
+            Fragment fragment){
+
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(
+                        R.id.frameContainer,
+                        fragment)
+                .commit();
     }
 }

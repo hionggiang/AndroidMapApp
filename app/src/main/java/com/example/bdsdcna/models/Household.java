@@ -15,7 +15,15 @@ public class Household {
     private HoTro hoTro;
 
     private List<ThanhVien> thanhVien;
+    private String nhomHo;
 
+    public String getNhomHo() {
+        return nhomHo;
+    }
+
+    public void setNhomHo(String nhomHo) {
+        this.nhomHo = nhomHo;
+    }
     public Household() {
         thanhVien = new ArrayList<>();
     }

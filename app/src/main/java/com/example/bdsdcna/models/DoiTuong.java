@@ -10,7 +10,6 @@ public class DoiTuong {
 
     public DoiTuong() {
     }
-
     public boolean isHoNgheo() {
         return hoNgheo;
     }
