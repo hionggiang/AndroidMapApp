@@ -19,21 +19,49 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 }
 
 dependencies {
+    // AndroidX & Giao diện cốt lõi (Đã giữ bản cao nhất 1.12.0)
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
-    implementation("com.google.firebase:firebase-storage:21.0.1")
-    implementation("com.google.firebase:firebase-firestore:25.1.0")
-    implementation(libs.activity.ktx)
     implementation(libs.constraintlayout)
-    implementation(libs.firebase.database)
-    implementation ("org.apache.poi:poi:5.2.5")
-    implementation ("org.apache.poi:poi-ooxml:5.2.5")
+    implementation(libs.activity.ktx)
+    implementation("androidx.cardview:cardview:1.0.0")
+
+    // Cấu hình Firebase tập trung (Sử dụng BoM để đồng bộ phiên bản)
     implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
+    implementation(libs.firebase.database)
+    implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-firestore")
+
+    // Bản đồ Google Maps & Định vị vị trí
     implementation("com.google.android.gms:play-services-maps:19.2.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // Biểu đồ báo cáo thống kê
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+    // Xử lý file Excel (Apache POI)
+    implementation("org.apache.poi:poi:5.2.5")
+    implementation("org.apache.poi:poi-ooxml:5.2.5")
+
+    // Lifecycle & Coroutines xử lý đa tiến trình / dữ liệu lớn nền background
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
