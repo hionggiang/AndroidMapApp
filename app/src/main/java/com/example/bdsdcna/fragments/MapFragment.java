@@ -2,7 +2,6 @@ package com.example.bdsdcna.fragments;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -86,16 +85,20 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             mapFragment.getMapAsync(this);
         }
     }
+
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
 
-        Log.d("MAP_TEST", "onMapReady");
-
         mMap = googleMap;
 
-        LatLng longHo = new LatLng(10.2167,105.9667);
+        LatLng longHo = new LatLng(10.2167, 105.9667);
 
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(longHo,13));
+        mMap.moveCamera(
+                CameraUpdateFactory.newLatLngZoom(longHo, 13)
+        );
+
+        mMap.getUiSettings().setZoomControlsEnabled(true);
+        mMap.getUiSettings().setCompassEnabled(true);
     }
 
     // ==============================
@@ -183,5 +186,4 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 }
         );
     }
-
 }

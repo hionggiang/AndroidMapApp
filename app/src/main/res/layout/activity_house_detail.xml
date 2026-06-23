@@ -35,6 +35,17 @@
                 android:textColor="#212121"
                 android:textSize="20sp"
                 android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/btnStar"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_alignParentEnd="true"
+                android:layout_margin="16dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginEnd="59dp"
+                android:contentDescription="Đánh dấu"
+                android:src="@drawable/ic_star_border" />
         </LinearLayout>
 
         <com.google.android.material.card.MaterialCardView
@@ -54,27 +65,17 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
 
-                <ImageButton
-                    android:id="@+id/btnPrev"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_gravity="start|center_vertical"
-                    android:layout_marginStart="8dp"
-                    android:background="@android:color/transparent"
-                    android:contentDescription="Ảnh trước"
-                    android:src="@android:drawable/ic_media_previous"
-                    app:tint="#FFFFFF" />
-
-                <ImageButton
-                    android:id="@+id/btnNext"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_gravity="end|center_vertical"
-                    android:layout_marginEnd="8dp"
-                    android:background="@android:color/transparent"
-                    android:contentDescription="Ảnh sau"
-                    android:src="@android:drawable/ic_media_next"
-                    app:tint="#FFFFFF" />
+                <TextView
+                    android:id="@+id/tvImageCounter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="12dp"
+                    android:background="#66000000"
+                    android:padding="6dp"
+                    android:text="1/1"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp" />
 
             </FrameLayout>
         </com.google.android.material.card.MaterialCardView>
