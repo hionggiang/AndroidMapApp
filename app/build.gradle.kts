@@ -35,7 +35,6 @@ android {
         jvmTarget = "1.8"
     }
 }
-
 dependencies {
     // AndroidX & Giao diện cốt lõi (Đã giữ bản cao nhất 1.12.0)
     implementation("androidx.appcompat:appcompat:1.7.0")
@@ -64,4 +63,8 @@ dependencies {
     // Lifecycle & Coroutines xử lý đa tiến trình / dữ liệu lớn nền background
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("com.cloudinary:cloudinary-android:2.5.0")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+    implementation("me.relex:circleindicator:2.1.6")
 }
