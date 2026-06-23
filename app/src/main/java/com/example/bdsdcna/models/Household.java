@@ -42,18 +42,7 @@ public class Household {
 
         extraFields = new HashMap<>();
     }
-    public String getNhomHo() {
-        if (this.doiTuong == null) return "KHAC";
 
-
-        // Kiểm tra xem hộ thuộc diện nào dựa trên các biến boolean đã có
-        if (this.doiTuong.isHoNgheo()) return "Hộ nghèo";
-        if (this.doiTuong.isHoCanNgheo()) return "Hộ cận nghèo";
-        if (this.doiTuong.isHoKhoKhan()) return "Hộ khó khăn";
-        if (this.doiTuong.isGiaDinhChinhSach()) return "Gia đình chính sách";
-
-        return "KHAC"; // Mặc định nếu không thuộc các nhóm trên
-    }
     public String getHouseholdId() {
         return householdId;
     }
