@@ -1,9 +1,11 @@
 package com.example.bdsdcna.fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -11,13 +13,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.bdsdcna.R;
+import com.example.bdsdcna.activities.HouseDetailActivity;
 import com.example.bdsdcna.adapters.HouseholdAdapter;
 import com.example.bdsdcna.models.Household;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.database.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,7 +26,6 @@ public class HouseListFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private HouseholdAdapter adapter;
-
     private ArrayList<Household> householdList;
 
     private DatabaseReference databaseReference;
@@ -56,9 +54,16 @@ public class HouseListFragment extends Fragment {
                 householdList,
                 household -> {
 
-                    // TODO:
-                    // Mở HouseDetailActivity
+                    Intent intent =
+                            new Intent(
+                                    getContext(),
+                                    HouseDetailActivity.class);
 
+                    intent.putExtra(
+                            "householdId",
+                            household.getHouseholdId());
+
+                    startActivity(intent);
                 });
 
         recyclerView.setAdapter(adapter);
@@ -78,27 +83,27 @@ public class HouseListFragment extends Fragment {
                 new ValueEventListener() {
 
                     @Override
-                    public void onDataChange(
-                            @NonNull DataSnapshot snapshot) {
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
 
                         householdList.clear();
 
-                        loadGroup(snapshot,
-                                "ho_ngheo");
+                        System.out.println(
+                                "Tong so ho: "
+                                        + snapshot.getChildrenCount());
 
-                        loadGroup(snapshot,
-                                "ho_can_ngheo");
+                        for (DataSnapshot item : snapshot.getChildren()) {
 
-                        loadGroup(snapshot,
-                                "ho_kho_khan");
+                            System.out.println(
+                                    "KEY = " + item.getKey());
 
-                        loadGroup(snapshot,
-                                "ho_chinh_sach");
+                            Household household =
+                                    item.getValue(Household.class);
 
-                        Collections.sort(
-                                householdList,
-                                Comparator.comparingInt(
-                                        Household::getStt));
+                            if (household != null) {
+
+                                householdList.add(household);
+                            }
+                        }
 
                         adapter.notifyDataSetChanged();
                     }
@@ -107,33 +112,13 @@ public class HouseListFragment extends Fragment {
                     public void onCancelled(
                             @NonNull DatabaseError error) {
 
+                        Toast.makeText(
+                                getContext(),
+                                error.getMessage(),
+                                Toast.LENGTH_SHORT
+                        ).show();
                     }
+
                 });
-    }
-
-    private void loadGroup(
-            DataSnapshot root,
-            String groupName) {
-
-        DataSnapshot group =
-                root.child(groupName);
-
-        for (DataSnapshot item :
-                group.getChildren()) {
-
-            Household household =
-                    item.getValue(
-                            Household.class);
-
-            if (household != null) {
-
-                // Gắn nhóm hộ
-                household.setNhomHo(
-                        groupName);
-
-                householdList.add(
-                        household);
-            }
-        }
     }
 }

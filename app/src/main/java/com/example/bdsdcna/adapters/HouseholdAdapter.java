@@ -110,69 +110,98 @@ public class HouseholdAdapter
         }
 
         // Địa chỉ
+// Địa chỉ
+        String diaChi = "";
+
         if (house.getDiaChi() != null) {
 
-            String diaChi =
-                    house.getDiaChi().getAp()
-                            + ", "
-                            + house.getDiaChi().getXa()
-                            + ", "
-                            + house.getDiaChi().getHuyen();
+            if (house.getDiaChi().getAp() != null &&
+                    !house.getDiaChi().getAp().isEmpty()) {
 
-            holder.txtAddress.setText(diaChi);
+                diaChi += house.getDiaChi().getAp();
+            }
 
-        } else {
+            if (house.getDiaChi().getXa() != null &&
+                    !house.getDiaChi().getXa().isEmpty()) {
 
-            holder.txtAddress.setText("Chưa cập nhật");
+                if (!diaChi.isEmpty()) diaChi += ", ";
+
+                diaChi += house.getDiaChi().getXa();
+            }
+
+            if (house.getDiaChi().getTinh() != null &&
+                    !house.getDiaChi().getTinh().isEmpty()) {
+
+                if (!diaChi.isEmpty()) diaChi += ", ";
+
+                diaChi += house.getDiaChi().getTinh();
+            }
         }
 
+        holder.txtAddress.setText(
+                diaChi.isEmpty()
+                        ? "Chưa cập nhật"
+                        : diaChi);
+
         // Đối tượng
-         String doiTuong = "";
+        String doiTuong = "";
 
-        switch (house.getNhomHo()) {
+        if (house.getDoiTuong() != null) {
 
-            case "ho_ngheo":
+            if (house.getDoiTuong().isHoNgheo()) {
+
                 doiTuong = "Hộ nghèo";
-                break;
 
-            case "ho_can_ngheo":
+            } else if (house.getDoiTuong().isHoCanNgheo()) {
+
                 doiTuong = "Hộ cận nghèo";
-                break;
 
-            case "ho_chinh_sach":
+            } else if (house.getDoiTuong().isGiaDinhChinhSach()) {
+
                 doiTuong = "Hộ chính sách";
-                break;
 
-            case "ho_kho_khan":
+            } else if (house.getDoiTuong().isHoKhoKhan()) {
+
                 doiTuong = "Hộ khó khăn";
-                break;
+
+            } else {
+
+                doiTuong = "";
+            }
         }
 
         holder.txtObject.setText(doiTuong);
 
+
         // Loại hỗ trợ
-        String support = "";
+//        String support = "";
+//
+//        if (house.getHoTro() != null) {
+//
+//            if ("XAY_MOI".equals(
+//                    house.getHoTro().getLoai())) {
+//
+//                support = "Xây mới";
+//
+//                holder.txtSupport.setBackgroundResource(
+//                        R.drawable.bg_support_red);
+//
+//            } else {
+//
+//                support = "Sửa chữa";
+//
+//                holder.txtSupport.setBackgroundResource(
+//                        R.drawable.bg_support_orange);
+//            }
+//        }
+//
+//        holder.txtSupport.setText(support);
+// Hỗ trợ (tạm thời tất cả là Xây mới)
 
-        if (house.getHoTro() != null) {
+        holder.txtSupport.setText("Xây mới");
 
-            if ("XAY_MOI".equals(
-                    house.getHoTro().getLoai())) {
-
-                support = "Xây mới";
-
-                holder.txtSupport.setBackgroundResource(
-                        R.drawable.bg_support_red);
-
-            } else {
-
-                support = "Sửa chữa";
-
-                holder.txtSupport.setBackgroundResource(
-                        R.drawable.bg_support_orange);
-            }
-        }
-
-        holder.txtSupport.setText(support);
+        holder.txtSupport.setBackgroundResource(
+                R.drawable.bg_support_red);
 
         // Click item
         holder.cardView.setOnClickListener(v -> {

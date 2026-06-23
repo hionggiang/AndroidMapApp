@@ -25,6 +25,7 @@ public class DoiTuong {
     private boolean hoBaoTroXaHoi;
 
     private boolean nguoiCoCong;
+    private boolean isXayMoi;
 
     /*
      * Mã số trợ giúp xã hội
@@ -33,6 +34,9 @@ public class DoiTuong {
     private boolean mstb;
 
     public DoiTuong() {
+    }
+    public boolean isXayMoi() {
+        return false;
     }
 
     public boolean isGiaDinhChinhSach() {

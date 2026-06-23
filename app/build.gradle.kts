@@ -33,4 +33,7 @@ dependencies {
     implementation(libs.firebase.database)
     implementation ("org.apache.poi:poi:5.2.5")
     implementation ("org.apache.poi:poi-ooxml:5.2.5")
+    implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
+    implementation("com.google.android.gms:play-services-maps:19.2.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 }
