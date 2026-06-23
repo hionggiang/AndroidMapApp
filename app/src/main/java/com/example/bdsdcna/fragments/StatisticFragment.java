@@ -47,6 +47,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -74,10 +75,12 @@ public class StatisticFragment extends Fragment {
     private final Map<String, Map<String, Long>> areaCountsMap = new HashMap<>();
     private final Map<String, Long> globalCounts = new HashMap<>();
 
-    // QUY CHUẨN MÀU GỐC CỦA BẠN
     private final Map<String, Integer> colorMapping = new HashMap<>();
     private String currentSortCriteria = "tongHo";
     private final List<String> spinnerKeys = new ArrayList<>();
+
+    // Cờ chống vòng lặp vô hạn giữa Spinner và Click cột tiêu đề
+    private boolean isSortingFromTable = false;
 
     public StatisticFragment() {
         columnLabels.put("tongHo", "Tổng Số Hộ");
@@ -97,7 +100,6 @@ public class StatisticFragment extends Fragment {
         sortDirections.put("tongNhanKhau", true);
         for (String key : columnLabels.keySet()) sortDirections.put(key, true);
 
-        // Khởi tạo bảng màu quy chuẩn của bạn
         colorMapping.put("tongHo", Color.parseColor("#455A64"));
         colorMapping.put("tongNhanKhau", Color.parseColor("#37474F"));
         colorMapping.put("hoNgheo", Color.parseColor("#E53935"));
@@ -150,6 +152,13 @@ public class StatisticFragment extends Fragment {
                         ((TextView) view).setTextColor(Color.parseColor("#263238"));
                         ((TextView) view).setTextSize(15f);
                     }
+
+                    // Nếu đang chạy sort tự động từ bảng dữ liệu thì bỏ qua cập nhật trùng lặp
+                    if (isSortingFromTable) {
+                        isSortingFromTable = false;
+                        return;
+                    }
+
                     updateBarChartComparingAreas(spinnerKeys.get(position));
                 }
                 @Override
@@ -255,7 +264,6 @@ public class StatisticFragment extends Fragment {
         });
     }
 
-    // BIỂU ĐỒ TRÒN: ÁP DỤNG QUY CHUẨN MÀU CŨ - LỌC BỎ TỔNG NHÂN KHẨU THEO YÊU CẦU
     private void setupPieChart(Map<String, Long> counts, String areaTitle) {
         List<PieEntry> entries = new ArrayList<>();
         List<Integer> colors = new ArrayList<>();
@@ -313,7 +321,6 @@ public class StatisticFragment extends Fragment {
         pieChartDoiTuong.invalidate();
     }
 
-    // BIỂU ĐỒ CỘT: SỬA LỖI ĐÔNG ĐỊA BÀN BẰNG CÁCH THÊM ZOOM/CUỘN NGANG TỰ ĐỘNG
     private void updateBarChartComparingAreas(String criteriaKey) {
         List<BarEntry> entries = new ArrayList<>();
         List<String> labels = new ArrayList<>();
@@ -360,7 +367,7 @@ public class StatisticFragment extends Fragment {
         xAxis.setGranularity(1f);
         xAxis.setGranularityEnabled(true);
         xAxis.setDrawGridLines(false);
-        xAxis.setLabelRotationAngle(-15f); // Góc nghiêng nhẹ tinh tế khi cuộn ngang
+        xAxis.setLabelRotationAngle(-15f);
         xAxis.setTextColor(Color.parseColor("#263238"));
         xAxis.setTextSize(10f);
 
@@ -375,17 +382,15 @@ public class StatisticFragment extends Fragment {
         barChartCompareAreas.setFitBars(true);
         barChartCompareAreas.setExtraBottomOffset(45f);
 
-        // TÍNH NĂNG NÂNG CẤP: BẬT CUỘN NGANG KHI ĐÔNG ẤP/XÃ
-        barChartCompareAreas.setDragEnabled(true);       // Cho phép vuốt để kéo qua lại
-        barChartCompareAreas.setScaleYEnabled(false);    // Khóa phóng to chiều dọc
-        barChartCompareAreas.setScaleXEnabled(true);     // Cho phép phóng to chiều ngang
+        barChartCompareAreas.setDragEnabled(true);
+        barChartCompareAreas.setScaleYEnabled(false);
+        barChartCompareAreas.setScaleXEnabled(true);
 
         barChartCompareAreas.getViewPortHandler().setMaximumScaleX(20f);
         barChartCompareAreas.fitScreen();
 
-        // Nếu tổng số địa bàn vượt quá 4, biểu đồ tự động giãn cách rộng ra và tạo thanh cuộn ngang
         if (entries.size() > 4) {
-            float xValueCountOnScreen = 4f; // Giới hạn chỉ hiển thị đúng 4 cột cùng lúc trên màn hình
+            float xValueCountOnScreen = 4f;
             float scaleX = (float) entries.size() / xValueCountOnScreen;
             barChartCompareAreas.zoom(scaleX, 1f, 0, 0);
         }
@@ -535,28 +540,41 @@ public class StatisticFragment extends Fragment {
         currentSortCriteria = key;
         boolean asc = Boolean.TRUE.equals(sortDirections.get(key));
         sortDirections.put(key, !asc);
+
         executorService.execute(() -> {
             synchronized (sortedAreaList) {
-                Collections.sort(sortedAreaList, (o1, o2) -> {
-                    if (key.equals("diaBan")) return asc ? o1.getKey().compareTo(o2.getKey()) : o2.getKey().compareTo(o1.getKey());
-                    if (key.equals("tongHo")) return asc ? Integer.compare(o2.getValue().size(), o1.getValue().size()) : Integer.compare(o1.getValue().size(), o2.getValue().size());
-
-                    if (key.equals("tongNhanKhau")) {
-                        long count1 = 0; for (Household h : o1.getValue()) if (h.getThanhVien() != null) count1 += h.getThanhVien().size();
-                        long count2 = 0; for (Household h : o2.getValue()) if (h.getThanhVien() != null) count2 += h.getThanhVien().size();
-                        return asc ? Long.compare(count2, count1) : Long.compare(count1, count2);
+                // SỬA LỖI: Sử dụng Comparator rõ ràng để tránh crash ở các thiết bị Android SDK cũ
+                Collections.sort(sortedAreaList, new Comparator<Map.Entry<String, List<Household>>>() {
+                    @Override
+                    public int compare(Map.Entry<String, List<Household>> o1, Map.Entry<String, List<Household>> o2) {
+                        if (key.equals("diaBan")) {
+                            return asc ? o1.getKey().compareTo(o2.getKey()) : o2.getKey().compareTo(o1.getKey());
+                        }
+                        if (key.equals("tongHo")) {
+                            return asc ? Integer.compare(o2.getValue().size(), o1.getValue().size()) : Integer.compare(o1.getValue().size(), o2.getValue().size());
+                        }
+                        if (key.equals("tongNhanKhau")) {
+                            long count1 = 0; for (Household h : o1.getValue()) if (h.getThanhVien() != null) count1 += h.getThanhVien().size();
+                            long count2 = 0; for (Household h : o2.getValue()) if (h.getThanhVien() != null) count2 += h.getThanhVien().size();
+                            return asc ? Long.compare(count2, count1) : Long.compare(count1, count2);
+                        }
+                        long c1 = countDoiTuongInArea(o1.getValue(), key);
+                        long c2 = countDoiTuongInArea(o2.getValue(), key);
+                        return asc ? Long.compare(c2, c1) : Long.compare(c1, c2);
                     }
-
-                    long c1 = countDoiTuongInArea(o1.getValue(), key);
-                    long c2 = countDoiTuongInArea(o2.getValue(), key);
-                    return asc ? Long.compare(c2, c1) : Long.compare(c1, c2);
                 });
             }
+
             mainHandler.post(() -> {
                 int keyIndex = spinnerKeys.indexOf(key);
                 if (keyIndex != -1) {
+                    // SỬA LỖI: Bật cờ thông báo để sự kiện onItemSelected của Spinner không chạy lại trùng lặp gây loop đơ máy
+                    isSortingFromTable = true;
                     spinnerCompareCriteria.setSelection(keyIndex);
                 }
+
+                // Đồng bộ cập nhật lại cả cột biểu đồ khớp với bộ lọc dữ liệu mới sắp xếp
+                updateBarChartComparingAreas(key);
                 refreshTableRows();
             });
         });
@@ -580,5 +598,9 @@ public class StatisticFragment extends Fragment {
         return count;
     }
 
-    @Override public void onDestroy() { super.onDestroy(); executorService.shutdown(); }
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        executorService.shutdown();
+    }
 }
