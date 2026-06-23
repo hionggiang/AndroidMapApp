@@ -35,7 +35,6 @@ android {
         jvmTarget = "1.8"
     }
 }
-
 dependencies {
     // AndroidX & Giao diện cốt lõi (Đã giữ bản cao nhất 1.12.0)
     implementation("androidx.appcompat:appcompat:1.7.0")
