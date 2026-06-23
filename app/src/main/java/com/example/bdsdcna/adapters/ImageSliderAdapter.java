@@ -16,6 +16,18 @@ public class ImageSliderAdapter extends RecyclerView.Adapter<ImageSliderAdapter.
     private final Context context;
     private final List<String> imageList;
 
+    // --- 1. ĐỊNH NGHĨA INTERFACE CLICK ---
+    private OnItemClickListener listener;
+
+    public interface OnItemClickListener {
+        void onItemClick(int position);
+    }
+
+    // --- 2. HÀM ĐỂ SET LISTENER TỪ ACTIVITY TRUYỀN VÀO ---
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
+    }
+
     public ImageSliderAdapter(Context context, List<String> imageList) {
         this.context = context;
         this.imageList = imageList;
@@ -24,7 +36,6 @@ public class ImageSliderAdapter extends RecyclerView.Adapter<ImageSliderAdapter.
     @NonNull
     @Override
     public SliderViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Nạp đúng file XML match_parent dùng cho slide
         View view = LayoutInflater.from(context).inflate(R.layout.item_image_slider, parent, false);
         return new SliderViewHolder(view);
     }
@@ -34,8 +45,15 @@ public class ImageSliderAdapter extends RecyclerView.Adapter<ImageSliderAdapter.
         String url = imageList.get(position);
         Glide.with(context)
                 .load(url)
-                .placeholder(android.R.drawable.ic_menu_gallery) // Ảnh hiển thị tạm thời
+                .placeholder(android.R.drawable.ic_menu_gallery)
                 .into(holder.imgHouse);
+
+        // --- 3. BẮT SỰ KIỆN CLICK CHO ITEM ---
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null && position != RecyclerView.NO_POSITION) {
+                listener.onItemClick(position);
+            }
+        });
     }
 
     @Override

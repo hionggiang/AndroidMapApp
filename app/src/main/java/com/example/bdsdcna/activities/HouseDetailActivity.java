@@ -13,7 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.bdsdcna.R;
-import com.example.bdsdcna.adapters.ImageAdapter;
+import com.example.bdsdcna.adapters.FullScreenImageAdapter; // Adapter sử dụng PhotoView
 import com.example.bdsdcna.adapters.ImageSliderAdapter;
 import com.example.bdsdcna.models.Household;
 import com.google.firebase.database.DataSnapshot;
@@ -54,7 +54,6 @@ public class HouseDetailActivity extends AppCompatActivity {
         txtMember = findViewById(R.id.txtMember);
         txtCost = findViewById(R.id.txtCost);
 
-
         btnMap = findViewById(R.id.btnMap);
         btnUpdate = findViewById(R.id.btnUpdate);
 
@@ -69,8 +68,15 @@ public class HouseDetailActivity extends AppCompatActivity {
         tvImageCounter = findViewById(R.id.tvImageCounter);
 
         mListUrls = new ArrayList<>();
-        imageAdapter = new ImageSliderAdapter(this, mListUrls); // Đổi ở đây
+        imageAdapter = new ImageSliderAdapter(this, mListUrls);
         viewPagerImages.setAdapter(imageAdapter);
+
+        // --- LẮNG NGHE SỰ KIỆN CLICK VÀO ẢNH ĐỂ MỞ DIALOG PHÓNG TO ---
+        imageAdapter.setOnItemClickListener(position -> {
+            if (mListUrls != null && !mListUrls.isEmpty()) {
+                openFullScreenDialog(position);
+            }
+        });
 
         // Nhận dữ liệu ID hộ gia đình từ Intent màn hình trước truyền qua
         householdId = getIntent().getStringExtra("householdId");
@@ -92,15 +98,48 @@ public class HouseDetailActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayShowHomeEnabled(true);
             getSupportActionBar().setTitle("Chi tiết hộ");
         }
+
         viewPagerImages.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
-
                 tvImageCounter.setText((position + 1) + "/" + mListUrls.size());
             }
         });
+    }
 
+    // --- HÀM TẠO VÀ HIỂN THỊ CỬA SỔ PHÓNG TO ẢNH (DIALOG CHUẨN ZALO) ---
+    private void openFullScreenDialog(int startPosition) {
+        // Tạo dialog với style tràn toàn màn hình, không chứa thanh status bar mặc định
+        final android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dialog.setContentView(R.layout.dialog_full_screen_image);
+
+        // Ánh xạ các widget bên trong layout dialog
+        ViewPager2 viewPagerFullScreen = dialog.findViewById(R.id.viewPagerFullScreen);
+        TextView tvCounterFull = dialog.findViewById(R.id.tvCounterFull);
+        ImageButton btnCloseFull = dialog.findViewById(R.id.btnCloseFull);
+
+        // Sử dụng FullScreenImageAdapter có chứa PhotoView để bóp tay phóng to thu nhỏ
+        FullScreenImageAdapter fullScreenAdapter = new FullScreenImageAdapter(this, mListUrls);
+        viewPagerFullScreen.setAdapter(fullScreenAdapter);
+
+        // Di chuyển ViewPager đến đúng vị trí ảnh vừa click
+        viewPagerFullScreen.setCurrentItem(startPosition, false);
+        tvCounterFull.setText((startPosition + 1) + "/" + mListUrls.size());
+
+        // Thay đổi chỉ số đếm số lượng ảnh khi người dùng vuốt qua lại giữa các ảnh trong Dialog
+        viewPagerFullScreen.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                tvCounterFull.setText((position + 1) + "/" + mListUrls.size());
+            }
+        });
+
+        // Nhấn nút quay lại/X để đóng cửa sổ phóng to quay về màn hình chi tiết
+        btnCloseFull.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     // --- HÀM TẢI DANH SÁCH LINK ẢNH VÀ ĐỒNG BỘ VỚI VIEWPAGER2 ---
@@ -132,7 +171,6 @@ public class HouseDetailActivity extends AppCompatActivity {
                     }
                 });
     }
-
 
     // --- ĐIỀU HƯỚNG CHUYỂN MÀN HÌNH THEO TỪNG THÀNH PHẦN CLICK ---
     private void openScreen(String householdId) {

@@ -67,4 +67,7 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:4.16.0")
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
     implementation("me.relex:circleindicator:2.1.6")
+    // 1. Thư viện PhotoView: Giúp biến ImageView thông thường thành ảnh có thể zoom bằng 2 ngón tay
+    implementation("com.github.chrisbanes:PhotoView:2.3.0")
+
 }

@@ -19,9 +19,14 @@ import com.cloudinary.android.MediaManager;
 import com.cloudinary.android.callback.ErrorInfo;
 import com.cloudinary.android.callback.UploadCallback;
 import com.example.bdsdcna.R;
+import com.example.bdsdcna.adapters.FullScreenImageAdapter; // Sử dụng lại Adapter phóng to
 import com.example.bdsdcna.adapters.ImageAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.database.*;
+
+import androidx.viewpager2.widget.ViewPager2;
+import android.widget.ImageButton;
+import android.widget.TextView;
 
 import java.util.*;
 
@@ -32,7 +37,7 @@ public class HouseImagesActivity extends AppCompatActivity {
     private List<String> mListUrls;
     private String householdId;
     private DatabaseReference mDatabase;
-    private ValueEventListener mDBListener; // Thêm biến để quản lý việc lắng nghe Firebase
+    private ValueEventListener mDBListener;
 
     private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -56,16 +61,15 @@ public class HouseImagesActivity extends AppCompatActivity {
         // 1. Cấu hình lưới 2 cột
         rvImages.setLayoutManager(new GridLayoutManager(this, 2));
 
-        // 2. Tạo khoảng cách đều 8dp giữa các ảnh
-// 2. Tạo khoảng cách đều và đẹp mắt giữa các ảnh trong lưới 2 cột
+        // 2. Tạo khoảng cách đều và đẹp mắt giữa các ảnh trong lưới 2 cột
         rvImages.addItemDecoration(new RecyclerView.ItemDecoration() {
             @Override
             public void getItemOffsets(@NonNull Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
                 int spacing = (int) (6 * parent.getContext().getResources().getDisplayMetrics().density); // ~6dp
-                int position = parent.getChildAdapterPosition(view); // Vị trí item
+                int position = parent.getChildAdapterPosition(view);
 
                 if (position >= 0) {
-                    int column = position % 2; // Cột 0 hoặc cột 1
+                    int column = position % 2;
 
                     if (column == 0) {
                         outRect.left = spacing;
@@ -76,9 +80,9 @@ public class HouseImagesActivity extends AppCompatActivity {
                     }
 
                     if (position < 2) {
-                        outRect.top = spacing; // Cách lề top cho hàng đầu tiên
+                        outRect.top = spacing;
                     }
-                    outRect.bottom = spacing; // Khoảng cách hàng dưới
+                    outRect.bottom = spacing;
                 }
             }
         });
@@ -86,6 +90,13 @@ public class HouseImagesActivity extends AppCompatActivity {
         mListUrls = new ArrayList<>();
         imageAdapter = new ImageAdapter(this, mListUrls);
         rvImages.setAdapter(imageAdapter);
+
+        // --- TÍCH HỢP SỰ KIỆN CLICK VÀO ẢNH TRÊN LƯỚI ĐỂ PHÓNG TO ---
+        imageAdapter.setOnItemClickListener(position -> {
+            if (mListUrls != null && !mListUrls.isEmpty()) {
+                openFullScreenDialog(position);
+            }
+        });
 
         // 3. Khởi tạo Cloudinary (chỉ thực hiện 1 lần)
         try {
@@ -105,19 +116,48 @@ public class HouseImagesActivity extends AppCompatActivity {
         loadImages();
     }
 
-    // HÀM ĐỌC DỮ LIỆU TỰ ĐỘNG (Đã gộp và tối ưu)
+    // --- HÀM TẠO VÀ HIỂN THỊ CỬA SỔ PHÓNG TO ẢNH (BẬT TẠI CHỖ CHUẨN ZALO) ---
+    private void openFullScreenDialog(int startPosition) {
+        final android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dialog.setContentView(R.layout.dialog_full_screen_image); // Tái sử dụng lại layout XML cũ
+
+        ViewPager2 viewPagerFullScreen = dialog.findViewById(R.id.viewPagerFullScreen);
+        TextView tvCounterFull = dialog.findViewById(R.id.tvCounterFull);
+        ImageButton btnCloseFull = dialog.findViewById(R.id.btnCloseFull);
+
+        // Tái sử dụng FullScreenImageAdapter có chứa PhotoView để bóp tay phóng to thu nhỏ
+        FullScreenImageAdapter fullScreenAdapter = new FullScreenImageAdapter(this, mListUrls);
+        viewPagerFullScreen.setAdapter(fullScreenAdapter);
+
+        // Di chuyển ViewPager đến vị trí ảnh vừa click trong Grid danh sách
+        viewPagerFullScreen.setCurrentItem(startPosition, false);
+        tvCounterFull.setText((startPosition + 1) + "/" + mListUrls.size());
+
+        viewPagerFullScreen.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                tvCounterFull.setText((position + 1) + "/" + mListUrls.size());
+            }
+        });
+
+        btnCloseFull.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    // HÀM ĐỌC DỮ LIỆU TỰ ĐỘNG
     private void loadImages() {
         if (householdId == null || householdId.isEmpty()) {
             Toast.makeText(this, "Không tìm thấy thông tin hộ gia đình!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Gán listener vào biến để có thể gỡ bỏ khi hủy Activity
         mDBListener = mDatabase.child("households").child(householdId).child("images")
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        mListUrls.clear(); // Tránh trùng lặp ảnh khi có cập nhật mới
+                        mListUrls.clear();
 
                         if (snapshot.exists()) {
                             for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
@@ -194,7 +234,6 @@ public class HouseImagesActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Hủy lắng nghe dữ liệu từ Firebase khi Activity bị hủy để tránh rò rỉ bộ nhớ
         if (mDatabase != null && mDBListener != null && householdId != null) {
             mDatabase.child("households").child(householdId).child("images").removeEventListener(mDBListener);
         }
