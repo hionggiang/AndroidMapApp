@@ -10,7 +10,7 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="#2E7D32"
+        android:background="#ffffff"
         android:title="Tiến độ hỗ trợ"
         android:titleTextColor="@android:color/white"/>
 
