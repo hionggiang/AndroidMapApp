@@ -9,56 +9,75 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
+
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-        <ImageButton
-            android:id="@+id/btnBack"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_margin="16dp"
-            android:background="@android:color/transparent"
-            android:src="@drawable/ic_arrow_back_24"/>
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="257dp"
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_margin="16dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="Quay lại"
+                android:src="@drawable/ic_arrow_back_24" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="56dp"
+                android:layout_weight="1"
                 android:gravity="center"
                 android:text="Chi tiết hộ"
                 android:textColor="#212121"
                 android:textSize="20sp"
                 android:textStyle="bold" />
-    </LinearLayout>
-        <!-- KHU VỰC ẢNH -->
-        <FrameLayout
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="260dp">
+            android:layout_height="240dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp">
 
-            <androidx.viewpager2.widget.ViewPager2
-                android:id="@+id/viewPagerImages"
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"/>
+                android:layout_height="match_parent">
 
-            <ImageButton
-                android:id="@+id/btnPrev"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_gravity="start|center_vertical"
-                android:layout_marginStart="8dp"
-                android:background="@android:color/transparent"
-                android:src="@android:drawable/ic_media_previous"/>
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/viewPagerImages"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
 
-            <ImageButton
-                android:id="@+id/btnNext"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginEnd="8dp"
-                android:background="@android:color/transparent"
-                android:src="@android:drawable/ic_media_next"/>
+                <ImageButton
+                    android:id="@+id/btnPrev"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="8dp"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Ảnh trước"
+                    android:src="@android:drawable/ic_media_previous"
+                    app:tint="#FFFFFF" />
 
-        </FrameLayout>
+                <ImageButton
+                    android:id="@+id/btnNext"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="8dp"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Ảnh sau"
+                    android:src="@android:drawable/ic_media_next"
+                    app:tint="#FFFFFF" />
+
+            </FrameLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -86,7 +105,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                app:cardCornerRadius="12dp">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -97,73 +117,97 @@
                     <TextView
                         android:id="@+id/txtAddress"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        android:textColor="#424242"
+                        android:textSize="15sp" />
 
                     <TextView
                         android:id="@+id/txtBirth"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp" />
+                        android:layout_marginTop="10dp"
+                        android:textColor="#424242"
+                        android:textSize="15sp" />
 
                     <TextView
                         android:id="@+id/txtCCCD"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp" />
+                        android:layout_marginTop="10dp"
+                        android:textColor="#424242"
+                        android:textSize="15sp" />
 
                     <TextView
                         android:id="@+id/txtMember"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp" />
+                        android:layout_marginTop="10dp"
+                        android:textColor="#424242"
+                        android:textSize="15sp" />
 
                     <TextView
                         android:id="@+id/txtSupport"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp" />
+                        android:layout_marginTop="10dp"
+                        android:textColor="#424242"
+                        android:textSize="15sp" />
 
                     <TextView
                         android:id="@+id/txtCost"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp" />
+                        android:layout_marginTop="10dp"
+                        android:textColor="#424242"
+                        android:textSize="15sp" />
 
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="20dp"
+                android:gravity="center"
                 android:orientation="horizontal">
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnMap"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
+                    android:layout_height="38dp"
                     android:layout_weight="1"
-                    android:text="Chỉ đường" />
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="Chỉ đường"
+                    android:textSize="13sp"
+                    app:cornerRadius="20dp"
+                    app:strokeColor="#2E7D32"
+                    android:textColor="#2E7D32"/>
 
                 <Space
-                    android:layout_width="8dp"
+                    android:layout_width="12dp"
                     android:layout_height="1dp" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnUpdate"
+                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
+                    android:layout_height="38dp"
                     android:layout_weight="1"
-                    android:backgroundTint="#2E7D32"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
                     android:text="Cập nhật"
-                    android:textColor="#FFFFFF" />
-
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    app:backgroundTint="#2E7D32"
+                    app:cornerRadius="20dp" />
             </LinearLayout>
 
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:scrollbars="none">
 
                 <LinearLayout
@@ -175,46 +219,41 @@
                         android:id="@+id/tabImage"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:padding="12dp"
                         android:text="Hình ảnh"
-                        android:textStyle="bold"
                         android:textColor="#2E7D32"
-                        android:padding="12dp"/>
+                        android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tab360"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="360°"
-                        android:padding="12dp"/>
+                        android:padding="12dp"
+                        android:text="360°" />
 
                     <TextView
                         android:id="@+id/tabMember"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Thành viên"
-                        android:padding="12dp"/>
+                        android:padding="12dp"
+                        android:text="Thành viên" />
 
                     <TextView
                         android:id="@+id/tabProgress"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tiến độ"
-                        android:padding="12dp"/>
+                        android:padding="12dp"
+                        android:text="Tiến độ" />
 
                     <TextView
                         android:id="@+id/tabSponsor"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tài trợ"
-                        android:padding="12dp"/>
-
+                        android:padding="12dp"
+                        android:text="Tài trợ" />
                 </LinearLayout>
-
             </HorizontalScrollView>
 
-
         </LinearLayout>
-
     </LinearLayout>
-
 </androidx.core.widget.NestedScrollView>
