@@ -34,7 +34,7 @@ public class HouseDetailActivity extends AppCompatActivity {
 
     // --- CẤU HÌNH BIẾN CHO KHU VỰC HÌNH ẢNH MỚI ---
     private ViewPager2 viewPagerImages;
-    private ImageButton btnPrev, btnNext;
+    private TextView tvImageCounter;
     private ImageSliderAdapter imageAdapter;
     private List<String> mListUrls;
     private DatabaseReference mDatabase;
@@ -54,6 +54,7 @@ public class HouseDetailActivity extends AppCompatActivity {
         txtMember = findViewById(R.id.txtMember);
         txtCost = findViewById(R.id.txtCost);
 
+
         btnMap = findViewById(R.id.btnMap);
         btnUpdate = findViewById(R.id.btnUpdate);
 
@@ -65,8 +66,7 @@ public class HouseDetailActivity extends AppCompatActivity {
 
         // 2. Ánh xạ các thành phần ViewPager2 và nút bấm chuyển ảnh
         viewPagerImages = findViewById(R.id.viewPagerImages);
-        btnPrev = findViewById(R.id.btnPrev);
-        btnNext = findViewById(R.id.btnNext);
+        tvImageCounter = findViewById(R.id.tvImageCounter);
 
         mListUrls = new ArrayList<>();
         imageAdapter = new ImageSliderAdapter(this, mListUrls); // Đổi ở đây
@@ -92,22 +92,15 @@ public class HouseDetailActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayShowHomeEnabled(true);
             getSupportActionBar().setTitle("Chi tiết hộ");
         }
+        viewPagerImages.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
 
-// 3. Sự kiện bấm nút Next/Previous để lướt ảnh qua lại chủ động
-        btnPrev.setOnClickListener(v -> {
-            int currentItem = viewPagerImages.getCurrentItem();
-            if (currentItem > 0) {
-                // SỬA: Thay .setItem bằng .setCurrentItem
-                viewPagerImages.setCurrentItem(currentItem - 1, true);
+                tvImageCounter.setText((position + 1) + "/" + mListUrls.size());
             }
         });
 
-        btnNext.setOnClickListener(v -> {
-            int currentItem = viewPagerImages.getCurrentItem();
-            if (currentItem < mListUrls.size() - 1) {
-                viewPagerImages.setCurrentItem(currentItem + 1, true);
-            }
-        });
     }
 
     // --- HÀM TẢI DANH SÁCH LINK ẢNH VÀ ĐỒNG BỘ VỚI VIEWPAGER2 ---
@@ -128,13 +121,8 @@ public class HouseDetailActivity extends AppCompatActivity {
                         }
                         imageAdapter.notifyDataSetChanged();
 
-                        // Ẩn 2 nút bấm lướt ảnh nếu hộ gia đình này có ít hơn hoặc bằng 1 ảnh
-                        if (mListUrls.size() <= 1) {
-                            btnPrev.setVisibility(View.GONE);
-                            btnNext.setVisibility(View.GONE);
-                        } else {
-                            btnPrev.setVisibility(View.VISIBLE);
-                            btnNext.setVisibility(View.VISIBLE);
+                        if (mListUrls.size() > 0) {
+                            tvImageCounter.setText("1/" + mListUrls.size());
                         }
                     }
 
@@ -144,6 +132,7 @@ public class HouseDetailActivity extends AppCompatActivity {
                     }
                 });
     }
+
 
     // --- ĐIỀU HƯỚNG CHUYỂN MÀN HÌNH THEO TỪNG THÀNH PHẦN CLICK ---
     private void openScreen(String householdId) {
