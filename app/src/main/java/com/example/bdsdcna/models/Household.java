@@ -9,7 +9,7 @@ public class Household {
 
     private String householdId;
 
-    private int stt;
+    private Integer stt;
 
     private ChuHo chuHo;
 
@@ -51,11 +51,11 @@ public class Household {
         this.householdId = householdId;
     }
 
-    public int getStt() {
+    public Integer getStt() {
         return stt;
     }
 
-    public void setStt(int stt) {
+    public void setStt(Integer stt) {
         this.stt = stt;
     }
 

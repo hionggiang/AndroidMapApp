@@ -70,4 +70,9 @@ dependencies {
 
     implementation ("com.google.firebase:firebase-auth:24.0.1")
     implementation ("com.google.firebase:firebase-database:22.0.0")
+
+    // 1. Thư viện PhotoView: Giúp biến ImageView thông thường thành ảnh có thể zoom bằng 2 ngón tay
+    implementation("com.github.chrisbanes:PhotoView:2.3.0")
+
+    implementation ("com.google.android.material:material:1.12.0")
 }

@@ -6,6 +6,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -81,13 +84,17 @@ public class HouseListFragment extends Fragment {
                     System.out.println("Firebase Node Key: " + item.getKey());
 
                     Household household = item.getValue(Household.class);
-                    if (household != null) {
+                    if (household != null && household.getHouseholdId() != null) {
                         householdList.add(household);
                     }
                 }
 
                 // Sắp xếp danh sách hộ gia đình tăng dần theo Số Thứ Tự (STT)
-                Collections.sort(householdList, Comparator.comparingInt(Household::getStt));
+                Collections.sort(householdList, (a, b) -> {
+                    int sttA = (a != null && a.getStt() != null) ? a.getStt() : 0;
+                    int sttB = (b != null && b.getStt() != null) ? b.getStt() : 0;
+                    return Integer.compare(sttA, sttB);
+                });
 
                 // Cập nhật giao diện danh sách
                 adapter.notifyDataSetChanged();
@@ -102,4 +109,5 @@ public class HouseListFragment extends Fragment {
             }
         });
     }
+
 }
