@@ -1,11 +1,18 @@
 package com.example.bdsdcna.activities;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -21,12 +28,11 @@ import com.cloudinary.android.callback.UploadCallback;
 import com.example.bdsdcna.R;
 import com.example.bdsdcna.adapters.FullScreenImageAdapter; // Sử dụng lại Adapter phóng to
 import com.example.bdsdcna.adapters.ImageAdapter;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.bottomsheet.BottomSheetDialog; // Thư viện Material sẵn có
 import com.google.firebase.database.*;
 
 import androidx.viewpager2.widget.ViewPager2;
 import android.widget.ImageButton;
-import android.widget.TextView;
 
 import java.util.*;
 
@@ -39,12 +45,27 @@ public class HouseImagesActivity extends AppCompatActivity {
     private DatabaseReference mDatabase;
     private ValueEventListener mDBListener;
 
+    private Uri cameraImageUri;
+
+    // Launcher xử lý chọn ảnh từ Thư viện
     private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                     Uri imageUri = result.getData().getData();
                     if (imageUri != null) uploadImageToCloudinary(imageUri);
+                }
+            }
+    );
+
+    // Launcher xử lý chụp ảnh trực tiếp từ Camera
+    private final ActivityResultLauncher<Intent> cameraLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    if (cameraImageUri != null) {
+                        uploadImageToCloudinary(cameraImageUri);
+                    }
                 }
             }
     );
@@ -58,10 +79,8 @@ public class HouseImagesActivity extends AppCompatActivity {
         householdId = getIntent().getStringExtra("householdId");
         mDatabase = FirebaseDatabase.getInstance().getReference();
 
-        // 1. Cấu hình lưới 2 cột
         rvImages.setLayoutManager(new GridLayoutManager(this, 2));
 
-        // 2. Tạo khoảng cách đều và đẹp mắt giữa các ảnh trong lưới 2 cột
         rvImages.addItemDecoration(new RecyclerView.ItemDecoration() {
             @Override
             public void getItemOffsets(@NonNull Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
@@ -91,14 +110,12 @@ public class HouseImagesActivity extends AppCompatActivity {
         imageAdapter = new ImageAdapter(this, mListUrls);
         rvImages.setAdapter(imageAdapter);
 
-        // --- TÍCH HỢP SỰ KIỆN CLICK VÀO ẢNH TRÊN LƯỚI ĐỂ PHÓNG TO ---
         imageAdapter.setOnItemClickListener(position -> {
             if (mListUrls != null && !mListUrls.isEmpty()) {
                 openFullScreenDialog(position);
             }
         });
 
-        // 3. Khởi tạo Cloudinary (chỉ thực hiện 1 lần)
         try {
             Map<String, Object> config = new HashMap<>();
             config.put("cloud_name", "dydtzxe8w");
@@ -107,29 +124,109 @@ public class HouseImagesActivity extends AppCompatActivity {
             MediaManager.init(this, config);
         } catch (Exception ignored) {}
 
-        findViewById(R.id.fabAddImage).setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_PICK);
-            intent.setType("image/*");
-            imagePickerLauncher.launch(intent);
-        });
+        // SỬ DỤNG THANH CHỌN VUỐT DƯỚI LÊN (BOTTOM SHEET) ĐẸP HƠN
+        findViewById(R.id.fabAddImage).setOnClickListener(v -> showBottomSheetImageSource());
 
         loadImages();
     }
 
-    // --- HÀM TẠO VÀ HIỂN THỊ CỬA SỔ PHÓNG TO ẢNH (BẬT TẠI CHỖ CHUẨN ZALO) ---
+    // --- TẠO GIAO DIỆN THANH CHỌN VUỐT DƯỚI LÊN (BOTTOM SHEET) HOÀN TOÀN BẰNG CODE ---
+    private void showBottomSheetImageSource() {
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
+
+        // Tạo Layout tổng container màu trắng
+        LinearLayout layoutMain = new LinearLayout(this);
+        layoutMain.setOrientation(LinearLayout.VERTICAL);
+        int padding = (int) (20 * getResources().getDisplayMetrics().density);
+        layoutMain.setPadding(padding, padding, padding, padding);
+        layoutMain.setBackgroundColor(Color.WHITE);
+
+        // 1. Tiêu đề của thanh chọn
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText("Thêm hình ảnh hộ gia đình");
+        tvTitle.setTextSize(18);
+        tvTitle.setTextColor(Color.parseColor("#212121"));
+        tvTitle.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        titleParams.setMargins(0, 0, 0, (int) (16 * getResources().getDisplayMetrics().density));
+        tvTitle.setLayoutParams(titleParams);
+        layoutMain.addView(tvTitle);
+
+        // Cách định nghĩa style chung cho 2 nút bấm chọn
+        int itemHeight = (int) (55 * getResources().getDisplayMetrics().density);
+
+        // 2. Nút "Chụp ảnh mới"
+        TextView btnCamera = new TextView(this);
+        btnCamera.setText("📷   Chụp ảnh mới trực tiếp");
+        btnCamera.setTextSize(16);
+        btnCamera.setTextColor(Color.parseColor("#424242"));
+        btnCamera.setGravity(Gravity.CENTER_VERTICAL);
+        btnCamera.setPadding((int) (12 * getResources().getDisplayMetrics().density), 0, 0, 0);
+        btnCamera.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, itemHeight));
+
+        // Tạo hiệu ứng gợn sóng khi click (Ripple effect) bản xứ của điện thoại
+        int[] attrs = new int[]{android.R.attr.selectableItemBackground};
+        android.content.res.TypedArray ta = obtainStyledAttributes(attrs);
+        btnCamera.setBackground(ta.getDrawable(0));
+        btnCamera.setClickable(true);
+        btnCamera.setFocusable(true);
+
+        btnCamera.setOnClickListener(v -> {
+            bottomSheetDialog.dismiss();
+            openCamera();
+        });
+        layoutMain.addView(btnCamera);
+
+        // 3. Nút "Chọn từ thư viện"
+        TextView btnGallery = new TextView(this);
+        btnGallery.setText("🖼️   Chọn ảnh từ Thư viện");
+        btnGallery.setTextSize(16);
+        btnGallery.setTextColor(Color.parseColor("#424242"));
+        btnGallery.setGravity(Gravity.CENTER_VERTICAL);
+        btnGallery.setPadding((int) (12 * getResources().getDisplayMetrics().density), 0, 0, 0);
+        btnGallery.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, itemHeight));
+        btnGallery.setBackground(ta.getDrawable(0));
+        btnGallery.setClickable(true);
+        btnGallery.setFocusable(true);
+        ta.recycle(); // Giải phóng tài nguyên hệ thống
+
+        btnGallery.setOnClickListener(v -> {
+            bottomSheetDialog.dismiss();
+            Intent intent = new Intent(Intent.ACTION_PICK);
+            intent.setType("image/*");
+            imagePickerLauncher.launch(intent);
+        });
+        layoutMain.addView(btnGallery);
+
+        // Đưa toàn bộ giao diện Code vừa tạo vào BottomSheet và hiển thị lên
+        bottomSheetDialog.setContentView(layoutMain);
+        bottomSheetDialog.show();
+    }
+
+    private void openCamera() {
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.TITLE, "New House Photo");
+        values.put(MediaStore.Images.Media.DESCRIPTION, "From Camera");
+
+        cameraImageUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraImageUri);
+        cameraLauncher.launch(intent);
+    }
+
     private void openFullScreenDialog(int startPosition) {
         final android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
-        dialog.setContentView(R.layout.dialog_full_screen_image); // Tái sử dụng lại layout XML cũ
+        dialog.setContentView(R.layout.dialog_full_screen_image);
 
         ViewPager2 viewPagerFullScreen = dialog.findViewById(R.id.viewPagerFullScreen);
         TextView tvCounterFull = dialog.findViewById(R.id.tvCounterFull);
         ImageButton btnCloseFull = dialog.findViewById(R.id.btnCloseFull);
 
-        // Tái sử dụng FullScreenImageAdapter có chứa PhotoView để bóp tay phóng to thu nhỏ
         FullScreenImageAdapter fullScreenAdapter = new FullScreenImageAdapter(this, mListUrls);
         viewPagerFullScreen.setAdapter(fullScreenAdapter);
 
-        // Di chuyển ViewPager đến vị trí ảnh vừa click trong Grid danh sách
         viewPagerFullScreen.setCurrentItem(startPosition, false);
         tvCounterFull.setText((startPosition + 1) + "/" + mListUrls.size());
 
@@ -142,11 +239,9 @@ public class HouseImagesActivity extends AppCompatActivity {
         });
 
         btnCloseFull.setOnClickListener(v -> dialog.dismiss());
-
         dialog.show();
     }
 
-    // HÀM ĐỌC DỮ LIỆU TỰ ĐỘNG
     private void loadImages() {
         if (householdId == null || householdId.isEmpty()) {
             Toast.makeText(this, "Không tìm thấy thông tin hộ gia đình!", Toast.LENGTH_SHORT).show();
