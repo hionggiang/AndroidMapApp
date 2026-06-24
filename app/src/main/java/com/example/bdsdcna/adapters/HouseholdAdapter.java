@@ -40,12 +40,21 @@ public class HouseholdAdapter extends RecyclerView.Adapter<HouseholdAdapter.View
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+
         Household house = householdList.get(position);
 
-        // 1. Số thứ tự (STT)
-        holder.txtStt.setText(String.valueOf(house.getStt()));
+        // =======================
+        // 1. STT an toàn NULL
+        // =======================
+        if (house.getStt() != null) {
+            holder.txtStt.setText(String.valueOf(house.getStt()));
+        } else {
+            holder.txtStt.setText("0");
+        }
 
-        // 2. Màu vòng tròn STT luân phiên
+        // =======================
+        // 2. Màu STT
+        // =======================
         switch (position % 6) {
             case 0:
                 holder.txtStt.setBackgroundResource(R.drawable.bg_circle_red);
@@ -67,32 +76,46 @@ public class HouseholdAdapter extends RecyclerView.Adapter<HouseholdAdapter.View
                 break;
         }
 
-        // 3. Tên chủ hộ
-        if (house.getChuHo() != null) {
+        // =======================
+        // 3. Tên chủ hộ (NULL SAFE)
+        // =======================
+        if (house.getChuHo() != null && house.getChuHo().getHoTen() != null) {
             holder.txtName.setText(house.getChuHo().getHoTen());
         } else {
-            holder.txtName.setText("");
+            holder.txtName.setText("Chưa có tên");
         }
 
-        // 4. Xử lý Địa chỉ an toàn (Tránh trường hợp chuỗi rỗng hoặc Null)
+        // =======================
+        // 4. Địa chỉ an toàn
+        // =======================
         StringBuilder diaChiBuilder = new StringBuilder();
+
         if (house.getDiaChi() != null) {
+
             if (house.getDiaChi().getAp() != null && !house.getDiaChi().getAp().isEmpty()) {
                 diaChiBuilder.append(house.getDiaChi().getAp());
             }
+
             if (house.getDiaChi().getXa() != null && !house.getDiaChi().getXa().isEmpty()) {
                 if (diaChiBuilder.length() > 0) diaChiBuilder.append(", ");
                 diaChiBuilder.append(house.getDiaChi().getXa());
             }
+
             if (house.getDiaChi().getTinh() != null && !house.getDiaChi().getTinh().isEmpty()) {
                 if (diaChiBuilder.length() > 0) diaChiBuilder.append(", ");
                 diaChiBuilder.append(house.getDiaChi().getTinh());
             }
         }
-        holder.txtAddress.setText(diaChiBuilder.length() == 0 ? "Chưa cập nhật" : diaChiBuilder.toString());
 
-        // 5. Diện đối tượng an sinh
+        holder.txtAddress.setText(
+                diaChiBuilder.length() > 0 ? diaChiBuilder.toString() : "Chưa cập nhật"
+        );
+
+        // =======================
+        // 5. Đối tượng an sinh
+        // =======================
         String doiTuong = "";
+
         if (house.getDoiTuong() != null) {
             if (house.getDoiTuong().isHoNgheo()) {
                 doiTuong = "Hộ nghèo";
@@ -104,15 +127,22 @@ public class HouseholdAdapter extends RecyclerView.Adapter<HouseholdAdapter.View
                 doiTuong = "Hộ khó khăn";
             }
         }
-        holder.txtObject.setText(doiTuong);
 
-        // 6. Hình thức hỗ trợ (Mặc định tạm thời hiển thị Xây mới theo bản code cuối)
+        holder.txtObject.setText(
+                doiTuong.isEmpty() ? "Chưa xác định" : doiTuong
+        );
+
+        // =======================
+        // 6. Loại hỗ trợ (tạm fix cứng)
+        // =======================
         holder.txtSupport.setText("Xây mới");
         holder.txtSupport.setBackgroundResource(R.drawable.bg_support_red);
 
-        // 7. Sự kiện nhấn vào thẻ CardView
+        // =======================
+        // 7. Click item an toàn
+        // =======================
         holder.cardView.setOnClickListener(v -> {
-            if (listener != null) {
+            if (listener != null && house != null) {
                 listener.onHouseClick(house);
             }
         });
@@ -120,18 +150,25 @@ public class HouseholdAdapter extends RecyclerView.Adapter<HouseholdAdapter.View
 
     @Override
     public int getItemCount() {
-        return householdList == null ? 0 : householdList.size();
+        return (householdList != null) ? householdList.size() : 0;
     }
 
+    // =======================
+    // UPDATE DATA (FILTER SAFE)
+    // =======================
     public void updateData(List<Household> newList) {
-        if (householdList != null) {
-            householdList.clear();
-            householdList.addAll(newList);
-            notifyDataSetChanged();
-        }
+        if (newList == null) return;
+
+        householdList.clear();
+        householdList.addAll(newList);
+        notifyDataSetChanged();
     }
 
+    // =======================
+    // VIEW HOLDER
+    // =======================
     public static class ViewHolder extends RecyclerView.ViewHolder {
+
         CardView cardView;
         TextView txtStt;
         TextView txtName;
@@ -141,6 +178,7 @@ public class HouseholdAdapter extends RecyclerView.Adapter<HouseholdAdapter.View
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
+
             cardView = itemView.findViewById(R.id.cardView);
             txtStt = itemView.findViewById(R.id.txtStt);
             txtName = itemView.findViewById(R.id.txtName);

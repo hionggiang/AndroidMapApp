@@ -1,8 +1,11 @@
 package com.example.bdsdcna.activities;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.util.Patterns;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,7 +23,7 @@ public class SignUpActivity extends AppCompatActivity {
     private EditText edtEmail;
     private EditText edtPassword;
     private EditText edtConfirmPassword;
-
+    private TextView txtLogin;
     private Button btnSignUp;
 
     private FirebaseAuth mAuth;
@@ -36,14 +39,25 @@ public class SignUpActivity extends AppCompatActivity {
         edtEmail = findViewById(R.id.edtEmail);
         edtPassword = findViewById(R.id.edtPassword);
         edtConfirmPassword = findViewById(R.id.edtConfirmPassword);
-
+        txtLogin = findViewById(R.id.txtLogin);
         btnSignUp = findViewById(R.id.btnSignUp);
 
         mAuth = FirebaseAuth.getInstance();
+
         usersRef = FirebaseDatabase.getInstance()
                 .getReference("users");
 
         btnSignUp.setOnClickListener(v -> signUp());
+        txtLogin.setOnClickListener(v -> {
+
+            Intent intent = new Intent(
+                    SignUpActivity.this,
+                    SignInActivity.class);
+
+            startActivity(intent);
+
+            finish();
+        });
     }
 
     private void signUp() {
@@ -63,6 +77,7 @@ public class SignUpActivity extends AppCompatActivity {
         String confirm =
                 edtConfirmPassword.getText().toString().trim();
 
+        // Kiểm tra rỗng
         if (fullName.isEmpty()
                 || phone.isEmpty()
                 || email.isEmpty()
@@ -77,68 +92,136 @@ public class SignUpActivity extends AppCompatActivity {
             return;
         }
 
+        // Họ tên
+        if (fullName.length() < 5) {
+
+            edtFullName.setError(
+                    "Họ tên tối thiểu 5 ký tự");
+
+            edtFullName.requestFocus();
+            return;
+        }
+
+        if (fullName.matches(".*\\d.*")) {
+
+            edtFullName.setError(
+                    "Họ tên không được chứa số");
+
+            edtFullName.requestFocus();
+            return;
+        }
+
+        // SĐT
+        if (!phone.matches("^0\\d{9}$")) {
+
+            edtPhone.setError(
+                    "Số điện thoại phải gồm 10 số");
+
+            edtPhone.requestFocus();
+            return;
+        }
+
+        // Email
+        if (!Patterns.EMAIL_ADDRESS
+                .matcher(email)
+                .matches()) {
+
+            edtEmail.setError(
+                    "Email không hợp lệ");
+
+            edtEmail.requestFocus();
+            return;
+        }
+
+        // Password
+        if (password.length() < 8) {
+
+            edtPassword.setError(
+                    "Mật khẩu tối thiểu 8 ký tự");
+
+            edtPassword.requestFocus();
+            return;
+        }
+
+        if (!password.matches(".*[A-Z].*")) {
+
+            edtPassword.setError(
+                    "Phải có ít nhất 1 chữ hoa");
+
+            edtPassword.requestFocus();
+            return;
+        }
+
+        if (!password.matches(".*[a-z].*")) {
+
+            edtPassword.setError(
+                    "Phải có ít nhất 1 chữ thường");
+
+            edtPassword.requestFocus();
+            return;
+        }
+
+        if (!password.matches(".*\\d.*")) {
+
+            edtPassword.setError(
+                    "Phải có ít nhất 1 chữ số");
+
+            edtPassword.requestFocus();
+            return;
+        }
+
+        // Xác nhận mật khẩu
         if (!password.equals(confirm)) {
 
-            Toast.makeText(
-                    this,
-                    "Mật khẩu xác nhận không khớp",
-                    Toast.LENGTH_SHORT
-            ).show();
+            edtConfirmPassword.setError(
+                    "Mật khẩu xác nhận không khớp");
+
+            edtConfirmPassword.requestFocus();
             return;
         }
 
-        if (password.length() < 6) {
-
-            Toast.makeText(
-                    this,
-                    "Mật khẩu phải từ 6 ký tự",
-                    Toast.LENGTH_SHORT
-            ).show();
-            return;
-        }
+        btnSignUp.setEnabled(false);
 
         mAuth.createUserWithEmailAndPassword(
                         email,
-                        password
-                )
+                        password)
                 .addOnCompleteListener(task -> {
+
+                    btnSignUp.setEnabled(true);
 
                     if (task.isSuccessful()) {
 
                         String uid =
-                                mAuth.getCurrentUser().getUid();
+                                mAuth.getCurrentUser()
+                                        .getUid();
 
-                        User user = new User(
-                                uid,
-                                fullName,
-                                phone,
-                                email,
-                                "",                 // chức vụ
-                                "",                 // đơn vị công tác
-                                "user",             // quyền mặc định
-                                "active"            // trạng thái
-                        );
+                        User user = new User();
+
+                        user.setUid(uid);
+                        user.setFullName(fullName);
+                        user.setPhone(phone);
+                        user.setEmail(email);
+
 
                         usersRef.child(uid)
                                 .setValue(user)
-                                .addOnSuccessListener(unused -> {
+                                .addOnSuccessListener(
+                                        unused -> {
 
-                                    Toast.makeText(
-                                            SignUpActivity.this,
-                                            "Đăng ký thành công",
-                                            Toast.LENGTH_SHORT
-                                    ).show();
+                                            Toast.makeText(
+                                                    SignUpActivity.this,
+                                                    "Đăng ký thành công",
+                                                    Toast.LENGTH_SHORT
+                                            ).show();
 
-                                    finish();
-                                })
-                                .addOnFailureListener(e -> {
-
-                                    Toast.makeText(
-                                            SignUpActivity.this,
-                                            e.getMessage(),
-                                            Toast.LENGTH_SHORT
-                                    ).show();
-                                });
+                                            finish();
+                                        })
+                                .addOnFailureListener(
+                                        e -> Toast.makeText(
+                                                SignUpActivity.this,
+                                                e.getMessage(),
+                                                Toast.LENGTH_SHORT
+                                        ).show());
 
                     } else {
 
@@ -147,7 +230,7 @@ public class SignUpActivity extends AppCompatActivity {
                                 task.getException() != null
                                         ? task.getException().getMessage()
                                         : "Đăng ký thất bại",
-                                Toast.LENGTH_SHORT
+                                Toast.LENGTH_LONG
                         ).show();
                     }
                 });

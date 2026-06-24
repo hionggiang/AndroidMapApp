@@ -16,6 +16,7 @@ public class User {
     private String avatarUrl;
 
     public User() {
+        // Firebase cần constructor rỗng
     }
 
     public User(String uid,
@@ -25,7 +26,8 @@ public class User {
                 String chucVu,
                 String donViCongTac,
                 String role,
-                String status) {
+                String status,
+                String avatarUrl) {
 
         this.uid = uid;
         this.fullName = fullName;
@@ -35,14 +37,9 @@ public class User {
         this.donViCongTac = donViCongTac;
         this.role = role;
         this.status = status;
-    }
-    public String getAvatarUrl() {
-        return avatarUrl;
-    }
-
-    public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
     }
+
     public String getUid() {
         return uid;
     }
@@ -105,5 +102,13 @@ public class User {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 }

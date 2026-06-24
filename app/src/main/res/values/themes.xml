@@ -5,8 +5,9 @@
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
 
-    <style name="Theme.BDSDCNA" parent="Base.Theme.BDSDCNA" />
-    <style name="RoundedImageView" parent="">
+    <style name="Theme.BDSDCNA" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    </style>
+    <style name="RoundedImageView">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">8dp</item>
     </style>
