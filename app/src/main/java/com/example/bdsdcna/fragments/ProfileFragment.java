@@ -55,8 +55,7 @@ public class ProfileFragment extends Fragment {
 
     private Uri imageUri;
 
-    private final ActivityResultLauncher<String>
-            pickImageLauncher =
+    private final ActivityResultLauncher<String> pickImageLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.GetContent(),
                     uri -> {
@@ -65,7 +64,9 @@ public class ProfileFragment extends Fragment {
 
                             imageUri = uri;
 
-                            imgAvatar.setImageURI(uri);
+                            if (imgAvatar != null) {
+                                imgAvatar.setImageURI(uri);
+                            }
 
                             uploadAvatar();
                         }
@@ -78,6 +79,37 @@ public class ProfileFragment extends Fragment {
             ViewGroup container,
             Bundle savedInstanceState) {
 
+        mAuth = FirebaseAuth.getInstance();
+
+        // ======================
+        // CHƯA ĐĂNG NHẬP
+        // ======================
+        if (mAuth.getCurrentUser() == null) {
+
+            View guestView = inflater.inflate(
+                    R.layout.fragment_profile_guest,
+                    container,
+                    false);
+
+            Button btnLogin =
+                    guestView.findViewById(R.id.btnLogin);
+
+            btnLogin.setOnClickListener(v -> {
+
+                Intent intent =
+                        new Intent(
+                                getActivity(),
+                                SignInActivity.class);
+
+                startActivity(intent);
+            });
+
+            return guestView;
+        }
+
+        // ======================
+        // ĐÃ ĐĂNG NHẬP
+        // ======================
         View view = inflater.inflate(
                 R.layout.fragment_profile,
                 container,
@@ -103,8 +135,6 @@ public class ProfileFragment extends Fragment {
         layoutManageUsers =
                 view.findViewById(R.id.layoutManageUsers);
 
-        mAuth = FirebaseAuth.getInstance();
-
         storage = FirebaseStorage.getInstance();
         storageRef = storage.getReference();
 
@@ -114,44 +144,45 @@ public class ProfileFragment extends Fragment {
                 pickImageLauncher.launch("image/*"));
 
         layoutAccountInfo.setOnClickListener(v ->
-                startActivity(new Intent(
-                        getActivity(),
-                        AccountInfoActivity.class)));
+                startActivity(
+                        new Intent(
+                                getActivity(),
+                                AccountInfoActivity.class)));
 
         layoutChangePassword.setOnClickListener(v ->
-                startActivity(new Intent(
-                        getActivity(),
-                        ChangePasswordActivity.class)));
+                startActivity(
+                        new Intent(
+                                getActivity(),
+                                ChangePasswordActivity.class)));
 
-        layoutNotification.setOnClickListener(v -> {
+        layoutNotification.setOnClickListener(v ->
+
+                requireActivity()
+                        .getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(
+                                R.id.frameContainer,
+                                new NotificationFragment())
+                        .addToBackStack(null)
+                        .commit());
+
+        layoutManageUsers.setOnClickListener(v ->
+                startActivity(
+                        new Intent(
+                                getActivity(),
+                                UserManagementActivity.class)));
+
+        btnLogout.setOnClickListener(v -> {
+
+            FirebaseAuth.getInstance().signOut();
 
             requireActivity()
                     .getSupportFragmentManager()
                     .beginTransaction()
                     .replace(
                             R.id.frameContainer,
-                            new NotificationFragment())
-                    .addToBackStack(null)
+                            new ProfileFragment())
                     .commit();
-        });
-
-        layoutManageUsers.setOnClickListener(v ->
-                startActivity(new Intent(
-                        getActivity(),
-                        UserManagementActivity.class)));
-
-        btnLogout.setOnClickListener(v -> {
-
-            FirebaseAuth.getInstance().signOut();
-
-            Intent intent =
-                    new Intent(
-                            getActivity(),
-                            SignInActivity.class);
-
-            startActivity(intent);
-
-            requireActivity().finish();
         });
 
         return view;

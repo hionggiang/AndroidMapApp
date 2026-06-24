@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
 
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -15,33 +16,31 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.BDSDCNA">
+
         <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAnE8-CytwmtRQ5RSzOgpkg7SHispOV54Q" />
-        <!-- Màn hình đăng nhập -->
+            android:value="YOUR_API_KEY_HERE" />
+
+        <!-- Login -->
         <activity
             android:name=".activities.SignInActivity"
-            android:exported="true">
+            android:exported="true" />
 
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
-        </activity>
-
-        <!-- Màn hình đăng ký -->
+        <!-- Register -->
         <activity
             android:name=".activities.SignUpActivity"
             android:exported="false" />
 
-        <!-- Main -->
+        <!-- Main (Launcher) -->
         <activity
             android:name=".activities.MainActivity"
             android:exported="true">
 
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
 
         </activity>
 
@@ -51,54 +50,16 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- Upload -->
-        <activity
-            android:name=".activities.UploadActivity"
-            android:exported="false" />
-
-        <!-- Chi tiết hộ -->
-        <activity
-            android:name=".activities.HouseDetailActivity"
-            android:exported="false" />
-
-        <!-- Danh sách ảnh -->
-        <activity
-            android:name=".activities.HouseImagesActivity"
-            android:exported="false" />
-
-        <!-- Thành viên -->
-        <activity
-            android:name=".activities.MemberActivity"
-            android:exported="false" />
-
-        <!-- Tiến độ -->
-        <activity
-            android:name=".activities.ProgressActivity"
-            android:exported="false" />
-
-        <!-- Tài trợ -->
-        <activity
-            android:name=".activities.SponsorActivity"
-            android:exported="false" />
-
-        <!-- Camera 360 -->
-        <activity
-            android:name=".activities.Camera360Activity"
-            android:exported="false" />
-        <!-- Thông tin tài khoản -->
-        <activity
-            android:name=".activities.AccountInfoActivity"
-            android:exported="false" />
-
-        <!-- Đổi mật khẩu -->
-        <activity
-            android:name=".activities.ChangePasswordActivity"
-            android:exported="false" />
-
-        <!-- Quản lý người dùng -->
-        <activity
-            android:name=".activities.UserManagementActivity"
-            android:exported="false" />
+        <activity android:name=".activities.UploadActivity" android:exported="false" />
+        <activity android:name=".activities.HouseDetailActivity" android:exported="false" />
+        <activity android:name=".activities.HouseImagesActivity" android:exported="false" />
+        <activity android:name=".activities.MemberActivity" android:exported="false" />
+        <activity android:name=".activities.ProgressActivity" android:exported="false" />
+        <activity android:name=".activities.SponsorActivity" android:exported="false" />
+        <activity android:name=".activities.Camera360Activity" android:exported="false" />
+        <activity android:name=".activities.AccountInfoActivity" android:exported="false" />
+        <activity android:name=".activities.ChangePasswordActivity" android:exported="false" />
+        <activity android:name=".activities.UserManagementActivity" android:exported="false" />
 
     </application>
 </manifest>
