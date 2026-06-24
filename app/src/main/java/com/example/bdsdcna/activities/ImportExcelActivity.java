@@ -27,6 +27,7 @@ import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -80,9 +81,16 @@ public class ImportExcelActivity extends AppCompatActivity {
         spLoaiHo.setAdapter(adapter);
     }
 
+    // 🛠️ ĐÃ SỬA: Cho phép quét nhận cả file đuôi .xls và .xlsx thực tế
     private void selectExcel() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        intent.setType("*/*");
+        String[] mimeTypes = {
+                "application/vnd.ms-excel",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        };
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
         startActivityForResult(intent, PICK_EXCEL);
     }
 
@@ -168,42 +176,42 @@ public class ImportExcelActivity extends AppCompatActivity {
             // 2. Duyệt danh sách từ file Excel đẩy lên Firebase
             for (Household h : households) {
 
-                // CƠ CHẾ SỬA LỖI: Điền khuyết thông tin tên chủ hộ nếu bị rỗng do đọc lệch dòng thành viên
                 if (h.getChuHo() == null) {
                     h.setChuHo(new ChuHo());
                 }
 
                 if (h.getChuHo().getHoTen() == null || h.getChuHo().getHoTen().trim().isEmpty()) {
                     if (h.getThanhVien() != null && !h.getThanhVien().isEmpty()) {
-                        // Lấy tạm tên thành viên đầu tiên làm đại diện tên chủ hộ nếu bị bỏ trống ô
                         ThanhVien firstMember = h.getThanhVien().get(0);
                         h.getChuHo().setHoTen(firstMember.getHoTen());
                         h.getChuHo().setCccd(firstMember.getCccd());
                         h.getChuHo().setDanToc(firstMember.getDanToc());
                     } else {
-                        // Nếu cả hộ không có một mống tên nào -> Dòng trống rác thực sự của file Excel -> Bỏ qua
                         continue;
                     }
                 }
 
                 String newCccd = h.getChuHo().getCccd() != null ? h.getChuHo().getCccd().trim() : "";
 
-                // CHỈ LỌC TRÙNG KHI: CCCD không trống VÀ đã xuất hiện trên Firebase từ trước
                 if (!newCccd.isEmpty() && existingCccds.contains(newCccd)) {
                     skipCount++;
                     continue;
                 }
 
-                // Dữ liệu hoàn toàn hợp lệ -> Upload ngay lên Firebase
                 currentId++;
                 String newId = String.format("%s%04d", prefix, currentId);
                 h.setHouseholdId(newId);
                 h.setStt(currentId);
 
+                // 🛠️ ĐÃ SỬA: Bảo vệ Firebase chống crash Map rỗng
+                // Nếu extraFields trống, ta đổi nó thành null trước khi đưa lên để Firebase tự bỏ qua trường này, tránh gây lỗi văng app
+                if (h.getExtraFields() != null && h.getExtraFields().isEmpty()) {
+                    h.setExtraFields(null);
+                }
+
                 ref.child(newId).setValue(h);
                 successCount++;
 
-                // Thêm CCCD vừa tạo vào mảng tạm để tránh trùng lặp nội bộ nếu file Excel khai báo trùng
                 if (!newCccd.isEmpty()) {
                     existingCccds.add(newCccd);
                 }

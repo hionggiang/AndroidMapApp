@@ -1,6 +1,8 @@
 package com.example.bdsdcna.xulydulieu;
 
 import android.content.Context;
+import android.location.Address;
+import android.location.Geocoder;
 import android.net.Uri;
 import com.example.bdsdcna.models.*;
 import org.apache.poi.ss.usermodel.*;
@@ -18,7 +20,9 @@ public class ExcelImporterV2 {
             int totalRows = sheet.getLastRowNum();
             int indexRowIndex = -1;
 
-            // 1. Định vị nhanh hàng chứa chỉ mục (1), (2), (3)...
+            // ==========================================================
+            // 1. ĐỊNH VỊ NHANH HÀNG CHỨA CHỈ MỤC (1), (2), (3)...
+            // ==========================================================
             for (int i = 0; i <= totalRows; i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
@@ -30,20 +34,56 @@ public class ExcelImporterV2 {
             }
             if (indexRowIndex == -1) indexRowIndex = 2;
 
-            // 2. Tạo Map Dynamic Index chuẩn xác
+            // ==========================================================
+            // 2. TẠO MAP DYNAMIC INDEX (2 TẦNG LỌC THÔNG MINH)
+            // ==========================================================
             Map<String, Integer> colMap = new HashMap<>();
             Row indexRow = sheet.getRow(indexRowIndex);
+
+            // Lấy thêm hàng tiêu đề chữ (thường nằm ngay trên hàng chỉ mục số) để làm bảo hiểm
+            Row headerRow = sheet.getRow(indexRowIndex > 0 ? indexRowIndex - 1 : 0);
+
             if (indexRow != null) {
                 for (int c = 0; c < indexRow.getLastCellNum(); c++) {
+
+                    // --- TẦNG 1: QUÉT THEO SỐ CHỈ MỤC ĐỘNG (Logic gốc của bạn) ---
                     String cleanIdx = getValue(indexRow.getCell(c)).replaceAll("[() ]", "");
-                    if (!cleanIdx.isEmpty()) colMap.put("col_" + cleanIdx, c);
+                    if (!cleanIdx.isEmpty()) {
+                        colMap.put("col_" + cleanIdx, c);
+                    }
+
+                    // --- TẦNG 2: BẢO HIỂM THEO TỪ KHÓA CHỮ (Nếu hàng chỉ mục bị lỗi/thiếu số) ---
+                    String cellText = getValue(indexRow.getCell(c)).toLowerCase();
+                    String headerText = headerRow != null ? getValue(headerRow.getCell(c)).toLowerCase() : "";
+
+                    // Bảo hiểm cột Họ tên Chủ hộ (col_3)
+                    if (cellText.contains("họ tên") || cellText.contains("chủ hộ") || headerText.contains("họ tên") || headerText.contains("chủ hộ")) {
+                        if (!colMap.containsKey("col_3")) colMap.put("col_3", c);
+                    }
+                    // Bảo hiểm cột Tỉnh/Thành phố (col_10)
+                    if (cellText.contains("tỉnh") || cellText.contains("thành phố") || headerText.contains("tỉnh") || headerText.contains("thành phố")) {
+                        if (!colMap.containsKey("col_10")) colMap.put("col_10", c);
+                    }
+                    // Bảo hiểm cột Xã/Thị trấn (col_11)
+                    if (cellText.contains("xã") || cellText.contains("thị trấn") || headerText.contains("xã") || headerText.contains("thị trấn")) {
+                        if (!colMap.containsKey("col_11")) colMap.put("col_11", c);
+                    }
+                    // Bảo hiểm cột Ấp/Thôn/Khóm (col_12)
+                    if (cellText.contains("ấp") || cellText.contains("khóm") || cellText.contains("thôn") || headerText.contains("ấp") || headerText.contains("khóm") || headerText.contains("thôn")) {
+                        if (!colMap.containsKey("col_12")) colMap.put("col_12", c);
+                    }
                 }
             }
 
             Map<Integer, Household> householdMap = new LinkedHashMap<>();
             int currentSttHo = -1, fallbackSttHo = 1;
 
-            // 3. Quét tuyến tính dòng dữ liệu
+            // Khởi tạo Geocoder của hệ thống Android phục vụ quét tọa độ map ngầm
+            Geocoder geocoder = new Geocoder(context, Locale.getDefault());
+
+            // ==========================================================
+            // 3. QUÉT TUYẾN TÍNH DÒNG DỮ LIỆU CỦA FILE EXCEL
+            // ==========================================================
             for (int i = indexRowIndex + 1; i <= totalRows; i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
@@ -59,7 +99,7 @@ public class ExcelImporterV2 {
                     currentSttHo = fallbackSttHo;
                 }
 
-                // Nếu là hộ mới -> Tạo cấu trúc thông tin ban đầu
+                // Nếu phát hiện hộ mới -> Tiến hành bóc tách tạo dữ liệu hộ gia đình
                 if (!householdMap.containsKey(currentSttHo)) {
                     Household h = new Household();
                     h.setStt(currentSttHo);
@@ -74,11 +114,40 @@ public class ExcelImporterV2 {
                     chuHo.setDanToc(getValue(row.getCell(colMap.getOrDefault("col_9", 8))));
                     h.setChuHo(chuHo);
 
+                    // Trích xuất chuỗi địa chỉ động linh hoạt theo bộ lọc ánh xạ colMap
+                    String tinh = getValue(row.getCell(colMap.getOrDefault("col_10", 9)));
+                    String xa = getValue(row.getCell(colMap.getOrDefault("col_11", 10)));
+                    String ap = getValue(row.getCell(colMap.getOrDefault("col_12", 11)));
+
                     DiaChi diaChi = new DiaChi();
-                    diaChi.setTinh(getValue(row.getCell(colMap.getOrDefault("col_10", 9))));
-                    diaChi.setXa(getValue(row.getCell(colMap.getOrDefault("col_11", 10))));
-                    diaChi.setAp(getValue(row.getCell(colMap.getOrDefault("col_12", 11))));
+                    diaChi.setTinh(tinh);
+                    diaChi.setXa(xa);
+                    diaChi.setAp(ap);
                     h.setDiaChi(diaChi);
+
+                    // ------------------------------------------------------
+                    // 📌 TỰ ĐỘNG SINH VĨ ĐỘ & KINH ĐỘ BẰNG GEOCODER
+                    // ------------------------------------------------------
+                    if (!tinh.isEmpty() || !xa.isEmpty() || !ap.isEmpty()) {
+                        String fullAddress = "Ấp " + ap + ", Xã " + xa + ", Tỉnh " + tinh;
+                        try {
+                            List<Address> addresses = geocoder.getFromLocationName(fullAddress, 1);
+                            if (addresses != null && !addresses.isEmpty()) {
+                                Address location = addresses.get(0);
+
+                                // Sử dụng hàm addExtraField có sẵn trong Model của bạn
+                                h.addExtraField("vido", location.getLatitude());
+                                h.addExtraField("kinhdo", location.getLongitude());
+                            } else {
+                                h.addExtraField("vido", 0.0);
+                                h.addExtraField("kinhdo", 0.0);
+                            }
+                        } catch (Exception e) {
+                            h.addExtraField("vido", 0.0);
+                            h.addExtraField("kinhdo", 0.0);
+                            e.printStackTrace();
+                        }
+                    }
 
                     DoiTuong doiTuong = new DoiTuong();
                     if (loaiHo != null) {
@@ -97,7 +166,7 @@ public class ExcelImporterV2 {
                     fallbackSttHo++;
                 }
 
-                // Thêm thành viên
+                // Xử lý nạp các thành viên của hộ gia đình hiện tại
                 String memberName = getValue(row.getCell(colMap.getOrDefault("col_4", 3)));
                 if (!memberName.isEmpty()) {
                     ThanhVien tv = new ThanhVien();
@@ -114,7 +183,9 @@ public class ExcelImporterV2 {
                     } catch (Exception ignored) {}
 
                     Household currentHousehold = householdMap.get(currentSttHo);
-                    if (currentHousehold != null) currentHousehold.getThanhVien().add(tv);
+                    if (currentHousehold != null) {
+                        currentHousehold.getThanhVien().add(tv);
+                    }
                 }
             }
             return new ArrayList<>(householdMap.values());

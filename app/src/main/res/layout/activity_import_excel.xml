@@ -44,20 +44,17 @@
         android:textColor="#424242"
         android:textSize="14sp"
         android:textStyle="bold"
-        android:layout_marginBottom="6dp"/>
+        android:layout_marginBottom="8dp"/>
 
-    <FrameLayout
+    <Spinner
+        android:id="@+id/spLoaiHo"
         android:layout_width="280dp"
         android:layout_height="48dp"
         android:layout_marginBottom="32dp"
-        android:background="@android:drawable/btn_dropdown">
-
-        <Spinner
-            android:id="@+id/spLoaiHo"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            style="@style/Widget.AppCompat.Spinner" />
-    </FrameLayout>
+        android:paddingStart="12dp"
+        android:paddingEnd="36dp"
+        android:background="@drawable/spinner_border"
+        android:spinnerMode="dropdown" />
 
     <Button
         android:id="@+id/btnImportExcel"

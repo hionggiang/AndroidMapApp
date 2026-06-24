@@ -13,7 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.bdsdcna.R;
-import com.example.bdsdcna.adapters.FullScreenImageAdapter; // Adapter sử dụng PhotoView
+import com.example.bdsdcna.adapters.FullScreenImageAdapter;
 import com.example.bdsdcna.adapters.ImageSliderAdapter;
 import com.example.bdsdcna.models.Household;
 import com.google.firebase.database.DataSnapshot;
@@ -31,6 +31,11 @@ public class HouseDetailActivity extends AppCompatActivity {
     private Button btnMap, btnUpdate;
     private TextView tabImage, tab360, tabMember, tabProgress, tabSponsor;
     private String householdId;
+
+    // Biến lưu trữ tọa độ của hộ gia đình lấy từ Firebase
+    private double houseLatitude = 0.0;
+    private double houseLongitude = 0.0;
+    private String houseName = "";
 
     // --- CẤU HÌNH BIẾN CHO KHU VỰC HÌNH ẢNH MỚI ---
     private ViewPager2 viewPagerImages;
@@ -110,24 +115,19 @@ public class HouseDetailActivity extends AppCompatActivity {
 
     // --- HÀM TẠO VÀ HIỂN THỊ CỬA SỔ PHÓNG TO ẢNH (DIALOG CHUẨN ZALO) ---
     private void openFullScreenDialog(int startPosition) {
-        // Tạo dialog với style tràn toàn màn hình, không chứa thanh status bar mặc định
         final android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
         dialog.setContentView(R.layout.dialog_full_screen_image);
 
-        // Ánh xạ các widget bên trong layout dialog
         ViewPager2 viewPagerFullScreen = dialog.findViewById(R.id.viewPagerFullScreen);
         TextView tvCounterFull = dialog.findViewById(R.id.tvCounterFull);
         ImageButton btnCloseFull = dialog.findViewById(R.id.btnCloseFull);
 
-        // Sử dụng FullScreenImageAdapter có chứa PhotoView để bóp tay phóng to thu nhỏ
         FullScreenImageAdapter fullScreenAdapter = new FullScreenImageAdapter(this, mListUrls);
         viewPagerFullScreen.setAdapter(fullScreenAdapter);
 
-        // Di chuyển ViewPager đến đúng vị trí ảnh vừa click
         viewPagerFullScreen.setCurrentItem(startPosition, false);
         tvCounterFull.setText((startPosition + 1) + "/" + mListUrls.size());
 
-        // Thay đổi chỉ số đếm số lượng ảnh khi người dùng vuốt qua lại giữa các ảnh trong Dialog
         viewPagerFullScreen.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -136,9 +136,7 @@ public class HouseDetailActivity extends AppCompatActivity {
             }
         });
 
-        // Nhấn nút quay lại/X để đóng cửa sổ phóng to quay về màn hình chi tiết
         btnCloseFull.setOnClickListener(v -> dialog.dismiss());
-
         dialog.show();
     }
 
@@ -148,7 +146,7 @@ public class HouseDetailActivity extends AppCompatActivity {
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        mListUrls.clear(); // Làm sạch danh sách tránh nhân đôi ảnh trùng lặp
+                        mListUrls.clear();
 
                         if (snapshot.exists()) {
                             for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
@@ -204,10 +202,20 @@ public class HouseDetailActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        // ĐÃ CHỈNH SỬA: Chuyển hướng dữ liệu sang MainActivity để nạp vào MapFragment
         btnMap.setOnClickListener(v -> {
-            Intent intent = new Intent(HouseDetailActivity.this, MapActivity.class);
-            intent.putExtra("householdId", householdId);
-            startActivity(intent);
+            if (houseLatitude != 0.0 && houseLongitude != 0.0) {
+                Intent intent = new Intent(HouseDetailActivity.this, MainActivity.class);
+                // Xoá ngăn xếp các Activity cũ để đưa MainActivity lên đầu tiên
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                intent.putExtra("latitude", houseLatitude);
+                intent.putExtra("longitude", houseLongitude);
+                intent.putExtra("houseName", houseName);
+                startActivity(intent);
+                finish(); // Đóng màn hình chi tiết hộ sau khi bấm chỉ đường
+            } else {
+                Toast.makeText(this, "Hộ này chưa được cập nhật dữ liệu tọa độ!", Toast.LENGTH_SHORT).show();
+            }
         });
 
         btnUpdate.setOnClickListener(v -> {
@@ -225,6 +233,24 @@ public class HouseDetailActivity extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 Household house = snapshot.getValue(Household.class);
                 if (house != null) {
+                    // ĐÃ CẬP NHẬT: Trỏ chính xác vào child("extraFields") lấy "vido" và "kinhdo" theo cấu trúc Firebase của bạn
+                    try {
+                        if (snapshot.hasChild("extraFields")) {
+                            DataSnapshot extraSnapshot = snapshot.child("extraFields");
+
+                            // Firebase lưu số thực thỉnh thoảng hiểu lầm là Long hoặc Double, ép kiểu an toàn:
+                            Object latObj = extraSnapshot.child("vido").getValue();
+                            Object lngObj = extraSnapshot.child("kinhdo").getValue();
+
+                            houseLatitude = latObj != null ? Double.parseDouble(latObj.toString()) : 0.0;
+                            houseLongitude = lngObj != null ? Double.parseDouble(lngObj.toString()) : 0.0;
+                        }
+                    } catch (Exception e) {
+                        houseLatitude = 0.0;
+                        houseLongitude = 0.0;
+                        e.printStackTrace();
+                    }
+
                     showData(house);
                 }
             }
@@ -236,14 +262,13 @@ public class HouseDetailActivity extends AppCompatActivity {
 
     // --- HIỂN THỊ DỮ LIỆU CHỮ LÊN GIAO DIỆN ---
     private void showData(Household house) {
-        // 1. Chủ hộ
         if (house.getChuHo() != null) {
-            txtName.setText(house.getChuHo().getHoTen());
+            houseName = house.getChuHo().getHoTen();
+            txtName.setText(houseName);
             txtBirth.setText("Năm sinh: " + house.getChuHo().getNamSinh());
             txtCCCD.setText("CCCD: " + house.getChuHo().getCccd());
         }
 
-        // 2. Địa chỉ
         if (house.getDiaChi() != null) {
             String diaChi = "";
             if (house.getDiaChi().getAp() != null) diaChi += house.getDiaChi().getAp();
@@ -252,14 +277,12 @@ public class HouseDetailActivity extends AppCompatActivity {
             txtAddress.setText(diaChi);
         }
 
-        // 3. Số nhân khẩu
         if (house.getThanhVien() != null) {
             txtMember.setText("Số nhân khẩu: " + house.getThanhVien().size() + " người");
         } else {
             txtMember.setText("Số nhân khẩu: 0");
         }
 
-        // 4. Phân loại đối tượng
         String doiTuong = "Khác";
         if (house.getDoiTuong() != null) {
             if (house.getDoiTuong().isHoNgheo()) doiTuong = "Hộ nghèo";
@@ -271,7 +294,6 @@ public class HouseDetailActivity extends AppCompatActivity {
         }
         txtObject.setText(doiTuong);
 
-        // 5. Thông tin kinh phí hỗ trợ
         if (house.getHoTro() != null) {
             txtCost.setText("Kinh phí đề xuất: " + String.format("%,d", house.getHoTro().getKinhPhiDeXuat()) + " đ");
             txtSupport.setText(house.getHoTro().getKinhPhiDeXuat() > 0 ? "Đã đề xuất hỗ trợ" : "Chưa đề xuất");
