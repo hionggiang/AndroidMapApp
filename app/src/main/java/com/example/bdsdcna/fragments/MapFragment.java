@@ -1,40 +1,50 @@
 package com.example.bdsdcna.fragments;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.content.Context;
-import android.location.Address;
-import android.location.Geocoder;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.bdsdcna.R;
+import com.example.bdsdcna.adapters.FullScreenImageAdapter;
+import com.example.bdsdcna.adapters.ImageSliderAdapter;
 import com.example.bdsdcna.models.DoiTuong;
 import com.example.bdsdcna.models.Household;
-import com.example.bdsdcna.models.ChuHo;
-import com.example.bdsdcna.models.DiaChi;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker; // Đảm bảo import đúng dòng này
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -47,8 +57,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private Button btnHoNgheo, btnCanNgheo, btnChinhSach;
     private DatabaseReference databaseReference;
 
-    // Biến cờ để kiểm tra xem camera đã di chuyển đến mục tiêu chỉ đường lần đầu chưa
     private boolean isCameraRouted = false;
+    private HashMap<String, Household> householdMap = new HashMap<>();
+    private String routedHouseholdId = "";
+
+    private Marker lastSelectedMarker = null;
 
     public MapFragment() {}
 
@@ -67,6 +80,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         databaseReference = FirebaseDatabase.getInstance().getReference("households");
 
+        if (getArguments() != null) {
+            routedHouseholdId = getArguments().getString("householdId", "");
+        } else if (getActivity() != null && getActivity().getIntent() != null) {
+            routedHouseholdId = getActivity().getIntent().getStringExtra("householdId");
+        }
+
         return view;
     }
 
@@ -83,51 +102,107 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
 
+        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mMap.setMyLocationEnabled(true);
+        } else {
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        }
+
         mMap.getUiSettings().setZoomControlsEnabled(true);
-        mMap.getUiSettings().setCompassEnabled(true);
 
-        // Reset lại trạng thái camera
+        mMap.setOnMarkerClickListener(marker -> {
+            if (lastSelectedMarker != null) {
+                lastSelectedMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+                lastSelectedMarker.setZIndex(1.0f);
+            }
+
+            marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+            marker.setZIndex(10.0f);
+            lastSelectedMarker = marker;
+
+            // Đẩy nhẹ tâm bản đồ xuống dưới để Marker lộ diện ở nửa trên màn hình
+            centerMapOnMarkerWithOffset(marker.getPosition());
+
+            String hId = marker.getSnippet();
+            if (hId != null && !hId.isEmpty()) {
+                showBottomSheetDetail(hId);
+            }
+            return true;
+        });
+
         isCameraRouted = false;
-
-        // Bắt đầu lắng nghe dữ liệu từ Firebase
         loadData();
+    }
+
+    /**
+     * Hàm tính toán dịch chuyển vị trí camera map lên trên một chút để Marker lọt vào vùng trống
+     * Đồng thời tự động zoom cận cảnh (độ zoom tương đương 18.5f) giúp dễ nhìn hơn.
+     */
+    /**
+     * Hàm tính toán dịch chuyển vị trí camera map lên trên một chút để Marker lọt vào vùng trống
+     * Đồng thời tự động zoom cận cảnh giúp dễ nhìn hơn và không bị lệch tâm.
+     */
+    private void centerMapOnMarkerWithOffset(LatLng markerLatLng) {
+        if (mMap == null || getContext() == null) return;
+
+        // Cấu hình mức zoom mong muốn (ví dụ: 18.5f cho cận cảnh)
+        float targetZoom = 18.5f;
+        int height = getResources().getDisplayMetrics().heightPixels;
+
+        // BƯỚC 1: Đưa camera về vị trí Marker với mức zoom mục tiêu trước (không hiệu ứng)
+        // để hệ thống cập nhật đúng ma trận tọa độ Pixel hiện tại.
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLatLng, targetZoom));
+
+        // BƯỚC 2: Tính toán khoảng cách cần đẩy (Offset Y) trên màn hình thực tế
+        Projection projection = mMap.getProjection();
+        android.graphics.Point markerPoint = projection.toScreenLocation(markerLatLng);
+
+        // Muốn Marker nằm ở 1/4 màn hình từ trên xuống (nửa trên khoảng trống)
+        int targetY = height / 4;
+        int dy = markerPoint.y - targetY;
+
+        // BƯỚC 3: Tạo điểm tâm mới cho Bản đồ (đẩy tâm thật xuống dưới để marker trồi lên trên)
+        android.graphics.Point newCenterPoint = new android.graphics.Point(markerPoint.x, markerPoint.y + dy);
+        LatLng newCenterLatLng = projection.fromScreenLocation(newCenterPoint);
+
+        // BƯỚC 4: Thực hiện hiệu ứng lướt camera mượt mà đến vị trí chuẩn cuối cùng
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newCenterLatLng, targetZoom));
     }
 
     private void loadData() {
         databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                // Kiểm tra an toàn xem Fragment còn tồn tại trong giao diện hay không
                 if (!isAdded() || getContext() == null || mMap == null) return;
 
-                mMap.clear(); // Xóa sạch để vẽ lại danh sách mới chống trùng lặp
+                mMap.clear();
+                householdMap.clear();
+                lastSelectedMarker = null;
 
-                int tong = 0;
-                int xayMoi = 0;
-                int suaChua = 0;
-
-                boolean coHoNgheo = false;
-                boolean coCanNgheo = false;
-                boolean coChinhSach = false;
+                int tong = 0, xayMoi = 0, suaChua = 0;
+                boolean coHoNgheo = false, coCanNgheo = false, coChinhSach = false;
+                List<Marker> markerList = new ArrayList<>();
 
                 for (DataSnapshot item : snapshot.getChildren()) {
                     Household h = item.getValue(Household.class);
-
                     if (h != null) {
+                        String keyId = item.getKey();
+                        h.setHouseholdId(keyId);
+                        householdMap.put(keyId, h);
+
                         tong++;
                         DoiTuong dt = h.getDoiTuong();
-
                         if (dt != null) {
-                            if (dt.isXayMoi()) xayMoi++;
-                            else suaChua++;
-
+                            if (dt.isXayMoi()) xayMoi++; else suaChua++;
                             if (dt.isHoNgheo()) coHoNgheo = true;
                             if (dt.isHoCanNgheo()) coCanNgheo = true;
                             if (dt.isGiaDinhChinhSach()) coChinhSach = true;
                         }
 
-                        // Vẽ ghim hộ gia đình này lên bản đồ
-                        processHouseholdLocation(getContext(), item.getKey(), h);
+                        Marker m = processHouseholdLocation(getContext(), keyId, h);
+                        if (m != null) {
+                            markerList.add(m);
+                        }
                     }
                 }
 
@@ -139,52 +214,47 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 btnCanNgheo.setVisibility(coCanNgheo ? View.VISIBLE : View.GONE);
                 btnChinhSach.setVisibility(coChinhSach ? View.VISIBLE : View.GONE);
 
-                // ==========================================================
-                // 📌 CHỈ ĐƯỜNG AN TOÀN: Di chuyển camera và tự mở hộp thoại
-                // ==========================================================
-                checkAndApplyRouting();
+                checkAndApplyRouting(markerList);
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                if (isAdded() && getContext() != null) {
-                    Toast.makeText(getContext(), "Lỗi tải Firebase: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-                }
-            }
+            public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
-    /**
-     * Hàm tách biệt xử lý dịch chuyển camera khi có dữ liệu chỉ đường từ ngoài truyền vào
-     */
-    private void checkAndApplyRouting() {
-        if (getArguments() != null && !isCameraRouted) {
-            double selectedLat = getArguments().getDouble("latitude", 0.0);
-            double selectedLng = getArguments().getDouble("longitude", 0.0);
-            String houseName = getArguments().getString("houseName", "Hộ gia đình chỉ đường");
-
-            if (selectedLat != 0.0 && selectedLng != 0.0) {
-                LatLng targetedLocation = new LatLng(selectedLat, selectedLng);
-
-                // 1. Tạo ghim và hứng vào một biến đối tượng Marker
-                Marker routingMarker = mMap.addMarker(new MarkerOptions()
-                        .position(targetedLocation)
-                        .title(houseName)
-                        .snippet("Vị trí đang điều hướng"));
-
-                // 2. Kiểm tra nếu tạo thành công thì ép hiển thị InfoWindow lên luôn
-                if (routingMarker != null) {
-                    routingMarker.showInfoWindow();
-                }
-
-                // 3. Di chuyển camera mượt mà đến mục tiêu
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(targetedLocation, 17.0f));
-                isCameraRouted = true; // Đánh dấu đã dịch chuyển camera xong
-                return;
+    private void checkAndApplyRouting(List<Marker> markerList) {
+        // ĐỌC THÔNG TIN TỪ TRANG KHÁC SANG
+        if (getArguments() != null) {
+            String targetId = getArguments().getString("householdId", "");
+            if (targetId != null && !targetId.isEmpty()) {
+                routedHouseholdId = targetId;
             }
         }
 
-        // Nếu mở Bản đồ thông thường hoặc không có toạ độ hợp lệ, thiết lập camera về mặc định (chỉ thực hiện 1 lần đầu)
+        // THAY ĐỔI QUAN TRỌNG: Nếu chuyển trang có chỉ định ID hộ gia đình
+        if (routedHouseholdId != null && !routedHouseholdId.isEmpty()) {
+            for (Marker m : markerList) {
+                if (m.getSnippet() != null && m.getSnippet().equals(routedHouseholdId)) {
+                    m.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+                    m.setZIndex(10.0f);
+                    lastSelectedMarker = m;
+
+                    // SỬA LỖI: Tự động dịch chuyển tâm bản đồ và ZOOM TO lên điểm chọn khi từ trang khác sang
+                    centerMapOnMarkerWithOffset(m.getPosition());
+                    isCameraRouted = true; // Đánh dấu đã zoom theo luồng điều hướng thành công
+
+                    showBottomSheetDetail(routedHouseholdId);
+
+                    if (getArguments() != null) {
+                        getArguments().remove("householdId");
+                    }
+                    routedHouseholdId = "";
+                    break;
+                }
+            }
+        }
+
+        // Trường hợp không có luồng chuyển màn hình chỉ định (Mở bản đồ mặc định lên xem tổng quan)
         if (!isCameraRouted) {
             LatLng longHo = new LatLng(10.2167, 105.9667);
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(longHo, 13f));
@@ -192,73 +262,166 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    /**
-     * Truyền hẳn context an toàn vào để xử lý Geocoder không sợ rò rỉ bộ nhớ
-     */
-    private void processHouseholdLocation(Context context, String keyId, Household household) {
-        double vido = 0.0;
-        double kinhdo = 0.0;
+    private void showBottomSheetDetail(String hId) {
+        Household h = householdMap.get(hId);
+        if (h == null || getContext() == null) return;
 
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(getContext());
+        View sheetView = LayoutInflater.from(getContext()).inflate(R.layout.layout_bottom_sheet_detail, null);
+        bottomSheetDialog.setContentView(sheetView);
+
+        bottomSheetDialog.setOnShowListener(dialogInterface -> {
+            BottomSheetDialog dialog = (BottomSheetDialog) dialogInterface;
+            FrameLayout bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+            if (bottomSheet != null) {
+                BottomSheetBehavior<FrameLayout> behavior = BottomSheetBehavior.from(bottomSheet);
+                int peekHeightInPixels = (int) (220 * getResources().getDisplayMetrics().density);
+                behavior.setPeekHeight(peekHeightInPixels);
+                behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                behavior.setSkipCollapsed(false);
+                behavior.setDraggable(true);
+            }
+        });
+
+        bottomSheetDialog.setOnDismissListener(dialogInterface -> {
+            if (lastSelectedMarker != null) {
+                lastSelectedMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+                lastSelectedMarker.setZIndex(1.0f);
+                lastSelectedMarker = null;
+            }
+        });
+
+        TextView txtName = sheetView.findViewById(R.id.txtName);
+        TextView txtAddress = sheetView.findViewById(R.id.txtAddress);
+        TextView txtBirth = sheetView.findViewById(R.id.txtBirth);
+        TextView txtCCCD = sheetView.findViewById(R.id.txtCCCD);
+        TextView txtObject = sheetView.findViewById(R.id.txtObject);
+        TextView txtMember = sheetView.findViewById(R.id.txtMember);
+        TextView txtCost = sheetView.findViewById(R.id.txtCost);
+        TextView txtSupport = sheetView.findViewById(R.id.txtSupport);
+        Button btnNavigate = sheetView.findViewById(R.id.btnNavigate);
+
+        if (btnNavigate != null) {
+            btnNavigate.setText("Google Maps");
+        }
+
+        ViewPager2 viewPagerImages = sheetView.findViewById(R.id.viewPagerImages);
+        TextView tvImageCounter = sheetView.findViewById(R.id.tvImageCounter);
+
+        if (h.getChuHo() != null) {
+            txtName.setText(h.getChuHo().getHoTen());
+            txtBirth.setText("Năm sinh: " + h.getChuHo().getNamSinh());
+            txtCCCD.setText("CCCD: " + h.getChuHo().getCccd());
+        }
+        if (h.getDiaChi() != null) {
+            txtAddress.setText("Địa chỉ: Ấp " + h.getDiaChi().getAp() + ", " + h.getDiaChi().getXa() + ", " + h.getDiaChi().getTinh());
+        }
+        txtMember.setText("Số nhân khẩu: " + (h.getThanhVien() != null ? h.getThanhVien().size() : 0) + " người");
+
+        String doiTuong = "Khác";
+        if (h.getDoiTuong() != null) {
+            if (h.getDoiTuong().isHoNgheo()) doiTuong = "Hộ nghèo";
+            else if (h.getDoiTuong().isHoCanNgheo()) doiTuong = "Hộ cận nghèo";
+            else if (h.getDoiTuong().isGiaDinhChinhSach()) doiTuong = "Gia đình chính sách";
+        }
+        txtObject.setText("Đối tượng: " + doiTuong);
+
+        if (h.getHoTro() != null) {
+            txtCost.setText("Kinh phí: " + String.format("%,d", h.getHoTro().getKinhPhiDeXuat()) + " đ");
+            txtSupport.setText("Trạng thái: " + (h.getHoTro().getKinhPhiDeXuat() > 0 ? "Đã đề xuất" : "Chưa đề xuất"));
+        }
+
+        List<String> mListUrls = new ArrayList<>();
+        databaseReference.child(hId).child("images").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    for (DataSnapshot ds : snapshot.getChildren()) {
+                        String url = ds.getValue(String.class);
+                        if (url != null) mListUrls.add(url);
+                    }
+
+                    ImageSliderAdapter adapter = new ImageSliderAdapter(getActivity(), mListUrls);
+                    viewPagerImages.setAdapter(adapter);
+                    tvImageCounter.setText("1/" + mListUrls.size());
+
+                    viewPagerImages.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+                        @Override
+                        public void onPageSelected(int position) {
+                            super.onPageSelected(position);
+                            tvImageCounter.setText((position + 1) + "/" + mListUrls.size());
+                        }
+                    });
+
+                    adapter.setOnItemClickListener(position -> openFullScreenDialog(mListUrls, position));
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+
+        btnNavigate.setOnClickListener(v -> {
+            if (h.getExtraFields() != null) {
+                String latStr = h.getExtraFields().get("vido").toString();
+                String lngStr = h.getExtraFields().get("kinhdo").toString();
+                String uri = String.format(Locale.ENGLISH, "google.navigation:q=%s,%s", latStr, lngStr);
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+                intent.setPackage("com.google.android.apps.maps");
+                startActivity(intent);
+                bottomSheetDialog.dismiss();
+            }
+        });
+
+        bottomSheetDialog.show();
+    }
+
+    private void openFullScreenDialog(List<String> urls, int startPosition) {
+        if (getActivity() == null) return;
+        final Dialog dialog = new Dialog(getActivity(), android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dialog.setContentView(R.layout.dialog_full_screen_image);
+
+        ViewPager2 viewPagerFullScreen = dialog.findViewById(R.id.viewPagerFullScreen);
+        TextView tvCounterFull = dialog.findViewById(R.id.tvCounterFull);
+        ImageButton btnCloseFull = dialog.findViewById(R.id.btnCloseFull);
+
+        FullScreenImageAdapter fullScreenAdapter = new FullScreenImageAdapter(getActivity(), urls);
+        viewPagerFullScreen.setAdapter(fullScreenAdapter);
+
+        viewPagerFullScreen.setCurrentItem(startPosition, false);
+        tvCounterFull.setText((startPosition + 1) + "/" + urls.size());
+
+        viewPagerFullScreen.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                tvCounterFull.setText((position + 1) + "/" + urls.size());
+            }
+        });
+
+        btnCloseFull.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+    }
+
+    private Marker processHouseholdLocation(Context context, String keyId, Household household) {
+        double vido = 0.0, kinhdo = 0.0;
         if (household.getExtraFields() != null) {
             Map<String, Object> extra = household.getExtraFields();
             if (extra.containsKey("vido") && extra.get("vido") != null) {
-                try {
-                    vido = Double.parseDouble(extra.get("vido").toString());
-                } catch (Exception ignored) {}
+                try { vido = Double.parseDouble(extra.get("vido").toString()); } catch (Exception ignored) {}
             }
             if (extra.containsKey("kinhdo") && extra.get("kinhdo") != null) {
-                try {
-                    kinhdo = Double.parseDouble(extra.get("kinhdo").toString());
-                } catch (Exception ignored) {}
+                try { kinhdo = Double.parseDouble(extra.get("kinhdo").toString()); } catch (Exception ignored) {}
             }
         }
 
-        String nameTitle = "Hộ gia đình";
-        if (household.getChuHo() != null && household.getChuHo().getHoTen() != null) {
-            nameTitle = household.getChuHo().getHoTen();
-        }
+        String nameTitle = household.getChuHo() != null ? household.getChuHo().getHoTen() : "Hộ gia đình";
 
-        // Trường hợp 1: Có sẵn toạ độ từ trước
         if (vido != 0.0 && kinhdo != 0.0) {
             LatLng location = new LatLng(vido, kinhdo);
             if (mMap != null) {
-                mMap.addMarker(new MarkerOptions()
-                        .position(location)
-                        .title(nameTitle)
-                        .snippet(household.getHouseholdId()));
+                return mMap.addMarker(new MarkerOptions().position(location).title(nameTitle).snippet(keyId));
             }
         }
-        // Trường hợp 2: Thiếu toạ độ, phân tích từ Địa chỉ chuỗi chuỗi chuỗi bằng Geocoder
-        else if (household.getDiaChi() != null) {
-            DiaChi dc = household.getDiaChi();
-            String fullAddress = "Ấp " + dc.getAp() + ", Xã " + dc.getXa() + ", Tỉnh " + dc.getTinh();
-
-            Geocoder geocoder = new Geocoder(context, Locale.getDefault());
-            try {
-                List<Address> addresses = geocoder.getFromLocationName(fullAddress, 1);
-                if (addresses != null && !addresses.isEmpty()) {
-                    Address addressResult = addresses.get(0);
-                    double lat = addressResult.getLatitude();
-                    double lng = addressResult.getLongitude();
-
-                    LatLng calculatedLocation = new LatLng(lat, lng);
-                    if (mMap != null) {
-                        mMap.addMarker(new MarkerOptions()
-                                .position(calculatedLocation)
-                                .title(nameTitle)
-                                .snippet(household.getHouseholdId()));
-                    }
-
-                    // Cập nhật tọa độ tìm được ngược lại Firebase để lần sau không tốn tài nguyên tìm lại
-                    Map<String, Object> updateLocationMap = new HashMap<>();
-                    updateLocationMap.put("extraFields/vido", lat);
-                    updateLocationMap.put("extraFields/kinhdo", lng);
-
-                    databaseReference.child(keyId).updateChildren(updateLocationMap);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        return null;
     }
 }
