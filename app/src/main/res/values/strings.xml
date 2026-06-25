@@ -3,4 +3,5 @@
 
     <string name="open">Mở menu</string>
     <string name="close">Đóng menu</string>
+    <string name="default_web_client_id">YOUR_CLIENT_ID.apps.googleusercontent.com</string>
 </resources>

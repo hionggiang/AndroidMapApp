@@ -57,6 +57,8 @@ import java.util.Map;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
+
     private GoogleMap mMap;
     private TextView tvTongSo, tvXayMoi, tvSuaChua;
     private Spinner spinnerFilter;
@@ -67,15 +69,18 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private HashMap<String, Household> householdMap = new HashMap<>();
     private String routedHouseholdId = "";
 
+    // MỚI: Biến lưu ID hộ đang được chọn để giữ màu xanh dương bất tử kể cả khi Firebase clear() lại bản đồ
+    private String permanentlySelectedId = "";
+
     private Marker lastSelectedMarker = null;
 
-    // Bộ lọc phục vụ Spinner chính giữa
     private String currentFilterKey = "all";
     private final Map<String, String> filterMap = new HashMap<>();
     private List<String> filterOptions = new ArrayList<>();
     private ArrayAdapter<String> spinnerAdapter;
 
-    public MapFragment() {}
+    public MapFragment() {
+    }
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -90,25 +95,28 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         databaseReference = FirebaseDatabase.getInstance().getReference("households");
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
-        if (getArguments() != null) {
+        extractRoutedId();
+        initFilterData();
+        return view;
+    }
+
+    private void extractRoutedId() {
+        if (getArguments() != null && getArguments().containsKey("householdId")) {
             routedHouseholdId = getArguments().getString("householdId", "");
-        } else if (getActivity() != null && getActivity().getIntent() != null) {
+        } else if (getActivity() != null && getActivity().getIntent() != null && getActivity().getIntent().hasExtra("householdId")) {
             routedHouseholdId = getActivity().getIntent().getStringExtra("householdId");
         }
 
-        // Khởi tạo danh mục lọc khung mẫu
-        initFilterData();
-
-        return view;
+        if (routedHouseholdId != null && !routedHouseholdId.isEmpty()) {
+            permanentlySelectedId = routedHouseholdId;
+        }
     }
 
     private void initFilterData() {
         filterOptions.clear();
         filterMap.clear();
-
         filterOptions.add("Tất cả đối tượng");
         filterMap.put("all", "Tất cả đối tượng");
-
         filterMap.put("hoNgheo", "Hộ nghèo");
         filterMap.put("hoCanNgheo", "Hộ cận nghèo");
         filterMap.put("hoBaoTroXaHoi", "Bảo trợ xã hội");
@@ -127,7 +135,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             mapFragment.getMapAsync(this);
         }
 
-        // Cấu hình Spinner và ép chữ hiển thị nhảy ra chính giữa
         spinnerAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, filterOptions);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         if (spinnerFilter != null) {
@@ -158,35 +165,80 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
 
-        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            mMap.setMyLocationEnabled(true);
-        } else {
-            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-        }
+        // Bật nút và chấm tròn vị trí xanh dương của Google
+        enableMyLocationLayer();
 
         mMap.getUiSettings().setZoomControlsEnabled(true);
 
         mMap.setOnMarkerClickListener(marker -> {
-            if (lastSelectedMarker != null) {
-                lastSelectedMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
-                lastSelectedMarker.setZIndex(1.0f);
+            if (marker.getSnippet() != null) {
+                permanentlySelectedId = marker.getSnippet(); // Lưu lại ID khi click thủ công
             }
-
-            marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
-            marker.setZIndex(10.0f);
-            lastSelectedMarker = marker;
-
-            centerMapOnMarkerWithOffset(marker.getPosition());
-
-            String hId = marker.getSnippet();
-            if (hId != null && !hId.isEmpty()) {
-                showBottomSheetDetail(hId);
-            }
+            highlightAndCenterMarker(marker);
             return true;
         });
 
         isCameraRouted = false;
         loadData();
+    }
+
+    // ĐÃ TỐI ƯU: Đảm bảo kiểm tra quyền chuẩn xác trước khi hiển thị vị trí thiết bị lên Map
+    private void enableMyLocationLayer() {
+        if (getContext() == null || mMap == null) return;
+
+        // Kiểm tra xem ứng dụng đã được cấp quyền vị trí chưa
+        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                || ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+            // Nếu ĐÃ CẤP QUYỀN: Bật chấm xanh hiện tại và nút tâm vị trí
+            mMap.setMyLocationEnabled(true);
+            mMap.getUiSettings().setMyLocationButtonEnabled(true);
+
+        } else {
+            // Nếu CHƯA CẤP QUYỀN: Tự động bung cửa sổ hệ thống yêu cầu người dùng bấm "Cho phép"
+            requestPermissions(
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE
+            );
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (getContext() != null && ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    if (mMap != null) {
+                        mMap.setMyLocationEnabled(true);
+                        mMap.getUiSettings().setMyLocationButtonEnabled(true);
+
+                        // Nếu cấp quyền xong mà không có yêu cầu điều hướng hộ từ trước, kéo camera về GPS
+                        if (!isCameraRouted && (permanentlySelectedId == null || permanentlySelectedId.isEmpty())) {
+                            moveCameraToDeviceLocation();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void highlightAndCenterMarker(Marker marker) {
+        if (lastSelectedMarker != null) {
+            lastSelectedMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+            lastSelectedMarker.setZIndex(1.0f);
+        }
+
+        marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+        marker.setZIndex(10.0f);
+        lastSelectedMarker = marker;
+
+        centerMapOnMarkerWithOffset(marker.getPosition());
+
+        String hId = marker.getSnippet();
+        if (hId != null && !hId.isEmpty()) {
+            showBottomSheetDetail(hId);
+        }
     }
 
     private void centerMapOnMarkerWithOffset(LatLng markerLatLng) {
@@ -216,11 +268,16 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 if (!isAdded() || getContext() == null || mMap == null) return;
 
                 mMap.clear();
+
+                // ĐÃ SỬA: Đảm bảo sau khi mMap.clear(), lớp MyLocation vẫn được giữ nguyên không bị tắt
+                if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    mMap.setMyLocationEnabled(true);
+                }
+
                 householdMap.clear();
                 lastSelectedMarker = null;
 
                 int tong = 0, xayMoi = 0, suaChua = 0;
-
                 boolean coNgheo = false, coCanNgheo = false, coBaoTro = false, coChinhSach = false;
                 boolean coDanToc = false, coKhoKhan = false, coKhongLaoDong = false, coCong = false;
 
@@ -263,7 +320,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         tong++;
 
                         if (dt != null) {
-                            if (dt.isXayMoi()) xayMoi++; else suaChua++;
+                            if (dt.isXayMoi()) xayMoi++;
+                            else suaChua++;
                         }
 
                         Marker m = processHouseholdLocation(getContext(), keyId, h);
@@ -277,7 +335,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 tvXayMoi.setText(String.valueOf(xayMoi));
                 tvSuaChua.setText(String.valueOf(suaChua));
 
-                // Cập nhật động Spinner dựa vào dữ liệu thực tế từ Firebase
                 String selectedKeyBefore = currentFilterKey;
                 filterOptions.clear();
                 filterOptions.add("Tất cả đối tượng");
@@ -307,53 +364,64 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         });
     }
 
+    // ĐÃ TỐI ƯU: Đảm bảo giữ vững màu xanh dương bất tử của hộ gia đình được chọn
     private void checkAndApplyRouting(List<Marker> markerList) {
-        if (getArguments() != null) {
-            String targetId = getArguments().getString("householdId", "");
-            if (targetId != null && !targetId.isEmpty()) {
-                routedHouseholdId = targetId;
-            }
-        }
+        extractRoutedId();
 
-        if (routedHouseholdId != null && !routedHouseholdId.isEmpty()) {
+        boolean hasFoundTarget = false;
+
+        if (permanentlySelectedId != null && !permanentlySelectedId.isEmpty()) {
             for (Marker m : markerList) {
-                if (m.getSnippet() != null && m.getSnippet().equals(routedHouseholdId)) {
+                if (m.getSnippet() != null && m.getSnippet().equals(permanentlySelectedId)) {
+
+                    // Nhuộm màu xanh dương chuẩn chỉ cho Marker mục tiêu
                     m.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
                     m.setZIndex(10.0f);
                     lastSelectedMarker = m;
 
-                    centerMapOnMarkerWithOffset(m.getPosition());
-                    isCameraRouted = true;
-
-                    showBottomSheetDetail(routedHouseholdId);
-
-                    if (getArguments() != null) {
-                        getArguments().remove("householdId");
+                    // Chỉ dịch chuyển Camera và bật BottomSheet lên ở lần đầu tiên từ màn hình chi tiết nhảy qua
+                    if (routedHouseholdId != null && !routedHouseholdId.isEmpty()) {
+                        centerMapOnMarkerWithOffset(m.getPosition());
+                        showBottomSheetDetail(permanentlySelectedId);
                     }
-                    routedHouseholdId = "";
+
+                    hasFoundTarget = true;
+                    isCameraRouted = true;
                     break;
                 }
             }
         }
 
-        // Tự động chuyển Camera về GPS vị trí thực tế của thiết bị khi load map xong
-        if (!isCameraRouted) {
-            if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                fusedLocationClient.getLastLocation().addOnSuccessListener(requireActivity(), location -> {
-                    if (location != null && mMap != null) {
-                        LatLng currentLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f));
-                    } else {
-                        LatLng longHo = new LatLng(10.2167, 105.9667);
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(longHo, 13f));
-                    }
-                });
-            } else {
-                LatLng longHo = new LatLng(10.2167, 105.9667);
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(longHo, 13f));
+        // Xóa dấu vết Intent một lần sau khi sử dụng để tránh dính vòng lặp vô hạn
+        if (routedHouseholdId != null && !routedHouseholdId.isEmpty()) {
+            if (getArguments() != null) getArguments().remove("householdId");
+            if (getActivity() != null && getActivity().getIntent() != null) {
+                getActivity().getIntent().removeExtra("householdId");
             }
-            isCameraRouted = true;
+            routedHouseholdId = "";
         }
+
+        if (!hasFoundTarget && !isCameraRouted) {
+            moveCameraToDeviceLocation();
+        }
+    }
+
+    private void moveCameraToDeviceLocation() {
+        if (getContext() != null && ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.getLastLocation().addOnSuccessListener(requireActivity(), location -> {
+                if (location != null && mMap != null) {
+                    LatLng currentLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f));
+                } else {
+                    LatLng longHo = new LatLng(10.2167, 105.9667);
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(longHo, 13f));
+                }
+            });
+        } else {
+            LatLng longHo = new LatLng(10.2167, 105.9667);
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(longHo, 13f));
+        }
+        isCameraRouted = true;
     }
 
     private void showBottomSheetDetail(String hId) {
@@ -383,6 +451,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 lastSelectedMarker.setZIndex(1.0f);
                 lastSelectedMarker = null;
             }
+            permanentlySelectedId = ""; // Giải phóng ID khi người dùng vuốt đóng BottomSheet
         });
 
         TextView txtName = sheetView.findViewById(R.id.txtName);
@@ -450,6 +519,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                     adapter.setOnItemClickListener(position -> openFullScreenDialog(mListUrls, position));
                 }
             }
+
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
         });
@@ -501,10 +571,14 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         if (household.getExtraFields() != null) {
             Map<String, Object> extra = household.getExtraFields();
             if (extra.containsKey("vido") && extra.get("vido") != null) {
-                try { vido = Double.parseDouble(extra.get("vido").toString()); } catch (Exception ignored) {}
+                try {
+                    vido = Double.parseDouble(extra.get("vido").toString());
+                } catch (Exception ignored) {}
             }
             if (extra.containsKey("kinhdo") && extra.get("kinhdo") != null) {
-                try { kinhdo = Double.parseDouble(extra.get("kinhdo").toString()); } catch (Exception ignored) {}
+                try {
+                    kinhdo = Double.parseDouble(extra.get("kinhdo").toString());
+                } catch (Exception ignored) {}
             }
         }
 

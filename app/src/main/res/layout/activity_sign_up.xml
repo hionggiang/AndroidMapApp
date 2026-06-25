@@ -67,6 +67,16 @@
             android:layout_marginTop="16dp"
             android:text="Đăng ký"
             android:textAllCaps="false" />
+        <Button
+            android:id="@+id/btnGoogleSignUp"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginTop="10dp"
+            android:text="Đăng ký bằng Google"
+            android:textAllCaps="false"
+            android:backgroundTint="#FFFFFF"
+            android:textColor="#000000"
+            android:drawableLeft="@drawable/ic_google" />
 
         <TextView
             android:id="@+id/txtLogin"
