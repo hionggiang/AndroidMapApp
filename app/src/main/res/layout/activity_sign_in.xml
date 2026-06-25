@@ -66,7 +66,12 @@
                 android:layout_marginTop="20dp"
                 android:text="SIGN IN"
                 app:cornerRadius="12dp"/>
-
+            <!-- 🔥 GOOGLE SIGN IN BUTTON (FIXED) -->
+            <com.google.android.gms.common.SignInButton
+                android:id="@+id/btnGoogleSignIn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"/>
             <!-- Sign up -->
             <TextView
                 android:id="@+id/txtSignUp"
