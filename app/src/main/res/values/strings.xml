@@ -4,4 +4,13 @@
     <string name="open">Mở menu</string>
     <string name="close">Đóng menu</string>
     <string name="default_web_client_id">YOUR_CLIENT_ID.apps.googleusercontent.com</string>
+    <!-- Bottom Sheet Cập nhật -->
+    <string name="update_options_title">Chọn nội dung cần cập nhật</string>
+    <string name="update_basic_info">📋 Cập nhật thông tin cơ bản</string>
+    <string name="update_images">🖼️ Cập nhật ảnh</string>
+    <string name="update_360">🌐 Cập nhật ảnh 360°</string>
+    <string name="update_members">👥 Cập nhật thành viên</string>
+    <string name="update_progress">📈 Cập nhật tiến độ</string>
+    <string name="update_sponsor">💰 Cập nhật nhà tài trợ</string>
+    <string name="update_situation">📋 Cập nhật hoàn cảnh</string>
 </resources>

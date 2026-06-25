@@ -61,6 +61,8 @@
         <activity android:name=".activities.AccountInfoActivity" android:exported="false" />
         <activity android:name=".activities.ChangePasswordActivity" android:exported="false" />
         <activity android:name=".activities.UserManagementActivity" android:exported="false" />
-
+        <activity
+            android:name=".activities.UpdateSituationActivity"
+            android:exported="false" />
     </application>
 </manifest>
