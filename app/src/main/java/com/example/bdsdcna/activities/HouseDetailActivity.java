@@ -211,6 +211,7 @@ public class HouseDetailActivity extends AppCompatActivity {
                 intent.putExtra("latitude", houseLatitude);
                 intent.putExtra("longitude", houseLongitude);
                 intent.putExtra("houseName", houseName);
+                intent.putExtra("householdId", householdId);
                 startActivity(intent);
                 finish(); // Đóng màn hình chi tiết hộ sau khi bấm chỉ đường
             } else {

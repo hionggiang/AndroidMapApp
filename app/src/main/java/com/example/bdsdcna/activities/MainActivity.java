@@ -109,19 +109,26 @@ public class MainActivity extends AppCompatActivity {
             double lng = intent.getDoubleExtra("longitude", 0.0);
             String houseName = intent.getStringExtra("houseName");
 
+            // --- BỔ SUNG: Lấy thêm householdId từ Intent gửi qua ---
+            String householdId = intent.getStringExtra("householdId");
+
             // Tạo MapFragment có đính kèm toạ độ ghim cụ thể
             MapFragment mapFragment = new MapFragment();
             Bundle bundle = new Bundle();
             bundle.putDouble("latitude", lat);
             bundle.putDouble("longitude", lng);
             bundle.putString("houseName", houseName);
+
+            // --- BỔ SUNG: Đóng gói householdId vào bundle để gửi tiếp sang MapFragment ---
+            bundle.putString("householdId", householdId);
+
             mapFragment.setArguments(bundle);
 
             // Nạp fragment chứa dữ liệu ghim vào View
             loadFragment(mapFragment);
             txtTitle.setText("Bản đồ");
 
-            // Cập nhật trạng thái hiển thị trên thanh Bottom, dùng hiệu ứng tĩnh để không kích hoạt lại listener
+            // Cập nhật trạng thái hiển thị trên thanh Bottom
             bottomNavigation.getMenu().findItem(R.id.nav_map).setChecked(true);
         } else {
             // Mở ứng dụng bình thường (không truyền tọa độ chỉ đường)
