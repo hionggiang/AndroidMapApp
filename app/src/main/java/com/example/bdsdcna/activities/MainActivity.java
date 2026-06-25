@@ -83,13 +83,13 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
             }
-            if (id == R.id.nav_notify) {
-                txtTitle.setText("Thông báo");
-                if (!(currentFragment instanceof NotificationFragment)) {
-                    loadFragment(new NotificationFragment());
-                }
-                return true;
-            }
+//            if (id == R.id.nav_notify) {
+//                txtTitle.setText("Thông báo");
+//                if (!(currentFragment instanceof NotificationFragment)) {
+//                    loadFragment(new NotificationFragment());
+//                }
+//                return true;
+//            }
             if (id == R.id.nav_history) {
                 txtTitle.setText("Lịch sử");
                 if (!(currentFragment instanceof HistoryFragment)) {
