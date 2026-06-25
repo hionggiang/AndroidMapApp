@@ -2,237 +2,192 @@ package com.example.bdsdcna.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Patterns;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.bdsdcna.R;
 import com.example.bdsdcna.models.User;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+import com.google.android.gms.auth.api.signin.*;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.*;
+import com.google.firebase.database.*;
 
 public class SignUpActivity extends AppCompatActivity {
 
-    private EditText edtFullName;
-    private EditText edtPhone;
-    private EditText edtEmail;
-    private EditText edtPassword;
-    private EditText edtConfirmPassword;
-    private TextView txtLogin;
-    private Button btnSignUp;
+    private EditText edtFullName, edtPhone, edtEmail, edtPassword, edtConfirmPassword;
+    private Button btnSignUp, btnGoogleSignUp;
 
     private FirebaseAuth mAuth;
     private DatabaseReference usersRef;
+
+    // Google
+    private GoogleSignInClient googleSignInClient;
+    private static final int RC_SIGN_IN = 1000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
 
+        // Ánh xạ view
         edtFullName = findViewById(R.id.edtFullName);
         edtPhone = findViewById(R.id.edtPhone);
         edtEmail = findViewById(R.id.edtEmail);
         edtPassword = findViewById(R.id.edtPassword);
         edtConfirmPassword = findViewById(R.id.edtConfirmPassword);
-        txtLogin = findViewById(R.id.txtLogin);
+
         btnSignUp = findViewById(R.id.btnSignUp);
+        btnGoogleSignUp = findViewById(R.id.btnGoogleSignUp);
 
+        // Firebase
         mAuth = FirebaseAuth.getInstance();
+        usersRef = FirebaseDatabase.getInstance().getReference("users");
 
-        usersRef = FirebaseDatabase.getInstance()
-                .getReference("users");
-
+        // Email sign up
         btnSignUp.setOnClickListener(v -> signUp());
-        txtLogin.setOnClickListener(v -> {
 
-            Intent intent = new Intent(
-                    SignUpActivity.this,
-                    SignInActivity.class);
+        // Google Sign-In config
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build();
 
-            startActivity(intent);
+        googleSignInClient = GoogleSignIn.getClient(this, gso);
 
-            finish();
+        btnGoogleSignUp.setOnClickListener(v -> signInWithGoogle());
+    }
+
+    // ================= EMAIL SIGN UP =================
+    private void signUp() {
+        String fullName = edtFullName.getText().toString().trim();
+        String phone = edtPhone.getText().toString().trim();
+        String email = edtEmail.getText().toString().trim();
+        String password = edtPassword.getText().toString().trim();
+        String confirm = edtConfirmPassword.getText().toString().trim();
+
+        if (fullName.isEmpty() || phone.isEmpty() || email.isEmpty()
+                || password.isEmpty() || confirm.isEmpty()) {
+            toast("Vui lòng nhập đầy đủ thông tin");
+            return;
+        }
+
+        if (!password.equals(confirm)) {
+            toast("Mật khẩu không khớp");
+            return;
+        }
+
+        if (password.length() < 6) {
+            toast("Mật khẩu phải từ 6 ký tự");
+            return;
+        }
+
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        String uid = mAuth.getCurrentUser().getUid();
+
+                        User user = new User(uid, fullName, phone, email, "", "", "user", "active","");
+
+                        usersRef.child(uid).setValue(user)
+                                .addOnSuccessListener(unused -> {
+                                    toast("Đăng ký thành công");
+                                    finish();
+                                })
+                                .addOnFailureListener(e -> toast(e.getMessage()));
+                    } else {
+                        toast(task.getException() != null ?
+                                task.getException().getMessage() : "Đăng ký thất bại");
+                    }
+                });
+    }
+
+    // ================= GOOGLE SIGN IN =================
+    private void signInWithGoogle() {
+        googleSignInClient.signOut().addOnCompleteListener(this, task -> {
+            Intent intent = googleSignInClient.getSignInIntent();
+            startActivityForResult(intent, RC_SIGN_IN);
         });
     }
 
-    private void signUp() {
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
 
-        String fullName =
-                edtFullName.getText().toString().trim();
-
-        String phone =
-                edtPhone.getText().toString().trim();
-
-        String email =
-                edtEmail.getText().toString().trim();
-
-        String password =
-                edtPassword.getText().toString().trim();
-
-        String confirm =
-                edtConfirmPassword.getText().toString().trim();
-
-        // Kiểm tra rỗng
-        if (fullName.isEmpty()
-                || phone.isEmpty()
-                || email.isEmpty()
-                || password.isEmpty()
-                || confirm.isEmpty()) {
-
-            Toast.makeText(
-                    this,
-                    "Vui lòng nhập đầy đủ thông tin",
-                    Toast.LENGTH_SHORT
-            ).show();
-            return;
+        if (requestCode == RC_SIGN_IN) {
+            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+            try {
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                firebaseAuthWithGoogle(account.getIdToken());
+            } catch (Exception e) {
+                toast("Google Sign-In thất bại");
+            }
         }
+    }
 
-        // Họ tên
-        if (fullName.length() < 5) {
+    private void firebaseAuthWithGoogle(String idToken) {
+        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
 
-            edtFullName.setError(
-                    "Họ tên tối thiểu 5 ký tự");
-
-            edtFullName.requestFocus();
-            return;
-        }
-
-        if (fullName.matches(".*\\d.*")) {
-
-            edtFullName.setError(
-                    "Họ tên không được chứa số");
-
-            edtFullName.requestFocus();
-            return;
-        }
-
-        // SĐT
-        if (!phone.matches("^0\\d{9}$")) {
-
-            edtPhone.setError(
-                    "Số điện thoại phải gồm 10 số");
-
-            edtPhone.requestFocus();
-            return;
-        }
-
-        // Email
-        if (!Patterns.EMAIL_ADDRESS
-                .matcher(email)
-                .matches()) {
-
-            edtEmail.setError(
-                    "Email không hợp lệ");
-
-            edtEmail.requestFocus();
-            return;
-        }
-
-        // Password
-        if (password.length() < 8) {
-
-            edtPassword.setError(
-                    "Mật khẩu tối thiểu 8 ký tự");
-
-            edtPassword.requestFocus();
-            return;
-        }
-
-        if (!password.matches(".*[A-Z].*")) {
-
-            edtPassword.setError(
-                    "Phải có ít nhất 1 chữ hoa");
-
-            edtPassword.requestFocus();
-            return;
-        }
-
-        if (!password.matches(".*[a-z].*")) {
-
-            edtPassword.setError(
-                    "Phải có ít nhất 1 chữ thường");
-
-            edtPassword.requestFocus();
-            return;
-        }
-
-        if (!password.matches(".*\\d.*")) {
-
-            edtPassword.setError(
-                    "Phải có ít nhất 1 chữ số");
-
-            edtPassword.requestFocus();
-            return;
-        }
-
-        // Xác nhận mật khẩu
-        if (!password.equals(confirm)) {
-
-            edtConfirmPassword.setError(
-                    "Mật khẩu xác nhận không khớp");
-
-            edtConfirmPassword.requestFocus();
-            return;
-        }
-
-        btnSignUp.setEnabled(false);
-
-        mAuth.createUserWithEmailAndPassword(
-                        email,
-                        password)
+        mAuth.signInWithCredential(credential)
                 .addOnCompleteListener(task -> {
-
-                    btnSignUp.setEnabled(true);
-
                     if (task.isSuccessful()) {
+                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        if (firebaseUser == null) return;
 
-                        String uid =
-                                mAuth.getCurrentUser()
-                                        .getUid();
+                        String uid = firebaseUser.getUid();
 
-                        User user = new User();
+                        // Kiểm tra xem tài khoản đã tồn tại trong Database chưa
+                        usersRef.child(uid).get().addOnCompleteListener(checkTask -> {
+                            if (checkTask.isSuccessful()) {
+                                if (checkTask.getResult().exists()) {
+                                    // ✅ Tài khoản đã tồn tại
+                                    toast("Tài khoản đã được đăng ký. Vui lòng đăng nhập.");
+                                    mAuth.signOut(); // Đăng xuất để tránh giữ session
+                                    finish();
+                                } else {
+                                    // ✅ Tài khoản mới → Đăng ký
+                                    String name = firebaseUser.getDisplayName();
+                                    String email = firebaseUser.getEmail();
 
-                        user.setUid(uid);
-                        user.setFullName(fullName);
-                        user.setPhone(phone);
-                        user.setEmail(email);
+                                    String avatarUrl = firebaseUser.getPhotoUrl() != null
+                                            ? firebaseUser.getPhotoUrl().toString()
+                                            : "";
 
+                                    User user = new User(uid,
+                                            name != null ? name : "",
+                                            "",
+                                            email != null ? email : "",
+                                            "",
+                                            "",
+                                            "user",
+                                            "active",
+                                            avatarUrl
+                                    );
 
-                        usersRef.child(uid)
-                                .setValue(user)
-                                .addOnSuccessListener(
-                                        unused -> {
-
-                                            Toast.makeText(
-                                                    SignUpActivity.this,
-                                                    "Đăng ký thành công",
-                                                    Toast.LENGTH_SHORT
-                                            ).show();
-
-                                            finish();
-                                        })
-                                .addOnFailureListener(
-                                        e -> Toast.makeText(
-                                                SignUpActivity.this,
-                                                e.getMessage(),
-                                                Toast.LENGTH_SHORT
-                                        ).show());
+                                    usersRef.child(uid).setValue(user)
+                                            .addOnSuccessListener(unused -> {
+                                                toast("Đăng ký Google thành công");
+                                                finish();
+                                            })
+                                            .addOnFailureListener(e -> toast("Lưu thông tin thất bại"));
+                                }
+                            } else {
+                                toast("Kiểm tra tài khoản thất bại");
+                            }
+                        });
 
                     } else {
-
-                        Toast.makeText(
-                                SignUpActivity.this,
-                                task.getException() != null
-                                        ? task.getException().getMessage()
-                                        : "Đăng ký thất bại",
-                                Toast.LENGTH_LONG
-                        ).show();
+                        toast("Đăng nhập Google thất bại: " +
+                                (task.getException() != null ? task.getException().getMessage() : ""));
                     }
                 });
+    }
+
+    private void toast(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 }
