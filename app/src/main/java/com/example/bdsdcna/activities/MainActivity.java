@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.example.bdsdcna.R;
+import com.example.bdsdcna.fragments.HistoryFragment;
 import com.example.bdsdcna.fragments.HouseListFragment;
 import com.example.bdsdcna.fragments.MapFragment;
 import com.example.bdsdcna.fragments.NotificationFragment;
@@ -86,6 +87,13 @@ public class MainActivity extends AppCompatActivity {
                 txtTitle.setText("Thông báo");
                 if (!(currentFragment instanceof NotificationFragment)) {
                     loadFragment(new NotificationFragment());
+                }
+                return true;
+            }
+            if (id == R.id.nav_history) {
+                txtTitle.setText("Lịch sử");
+                if (!(currentFragment instanceof HistoryFragment)) {
+                    loadFragment(new HistoryFragment());
                 }
                 return true;
             }
