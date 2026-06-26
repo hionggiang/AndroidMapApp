@@ -9,6 +9,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.bdsdcna.HistoryHelper;
 import com.example.bdsdcna.R;
 import com.example.bdsdcna.models.User;
 import com.google.android.gms.auth.api.signin.*;
@@ -95,6 +96,9 @@ public class SignUpActivity extends AppCompatActivity {
 
                         usersRef.child(uid).setValue(user)
                                 .addOnSuccessListener(unused -> {
+
+                                    HistoryHelper.logSignUp("EMAIL");
+
                                     toast("Đăng ký thành công");
                                     finish();
                                 })
@@ -144,11 +148,25 @@ public class SignUpActivity extends AppCompatActivity {
                         usersRef.child(uid).get().addOnCompleteListener(checkTask -> {
                             if (checkTask.isSuccessful()) {
                                 if (checkTask.getResult().exists()) {
-                                    // ✅ Tài khoản đã tồn tại
+
+                                    HistoryHelper.log(
+                                            "SIGN_UP_GOOGLE_EXISTED",
+                                            "",
+                                            "",
+                                            uid,
+                                            firebaseUser.getDisplayName() != null
+                                                    ? firebaseUser.getDisplayName()
+                                                    : firebaseUser.getEmail(),
+                                            "",
+                                            "",
+                                            ""
+                                    );
+
                                     toast("Tài khoản đã được đăng ký. Vui lòng đăng nhập.");
-                                    mAuth.signOut(); // Đăng xuất để tránh giữ session
+                                    mAuth.signOut();
                                     finish();
-                                } else {
+                                }
+                                else {
                                     // ✅ Tài khoản mới → Đăng ký
                                     String name = firebaseUser.getDisplayName();
                                     String email = firebaseUser.getEmail();
@@ -170,6 +188,9 @@ public class SignUpActivity extends AppCompatActivity {
 
                                     usersRef.child(uid).setValue(user)
                                             .addOnSuccessListener(unused -> {
+
+                                                HistoryHelper.logSignUp("GOOGLE");
+
                                                 toast("Đăng ký Google thành công");
                                                 finish();
                                             })

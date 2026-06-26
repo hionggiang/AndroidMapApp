@@ -29,9 +29,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(
-            @NonNull ViewGroup parent,
-            int viewType) {
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
 
         View view = LayoutInflater.from(context)
                 .inflate(R.layout.item_history, parent, false);
@@ -40,43 +38,83 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
     }
 
     @Override
-    public void onBindViewHolder(
-            @NonNull ViewHolder holder,
-            int position) {
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
 
         History history = historyList.get(position);
 
         holder.txtAction.setText(getActionText(history.getAction()));
 
         holder.txtUser.setText(
-                history.getUserName() == null
-                        ? "Không xác định"
-                        : history.getUserName()
+                "Người thực hiện: " +
+                        (history.getUserName() == null || history.getUserName().isEmpty()
+                                ? history.getUserEmail()
+                                : history.getUserName())
         );
 
-        String detail = buildDetail(history);
-        holder.txtDetail.setText(detail);
+        String target = "";
+
+        if (history.getHouseholdId() != null &&
+                !history.getHouseholdId().isEmpty()) {
+
+            target += history.getHouseholdId();
+        }
+
+        if (history.getTargetName() != null &&
+                !history.getTargetName().isEmpty()) {
+
+            if (!target.isEmpty()) {
+                target += " - ";
+            }
+
+            target += history.getTargetName();
+        }
+
+        holder.txtTarget.setText(target);
+
+        String field = "";
+
+        if (history.getField() != null &&
+                !history.getField().isEmpty()) {
+
+            field = history.getField();
+
+            if (history.getOldValue() != null &&
+                    !history.getOldValue().isEmpty()) {
+
+                field += ": " + history.getOldValue();
+            }
+
+            if (history.getNewValue() != null &&
+                    !history.getNewValue().isEmpty()) {
+
+                field += " → " + history.getNewValue();
+            }
+        }
+
+        holder.txtField.setText(field);
 
         if (history.getTimestamp() > 0) {
 
-            SimpleDateFormat sdf =
-                    new SimpleDateFormat(
-                            "dd/MM/yyyy HH:mm",
-                            Locale.getDefault()
-                    );
+            SimpleDateFormat sdf = new SimpleDateFormat(
+                    "dd/MM/yyyy\nHH:mm",
+                    Locale.getDefault()
+            );
 
             holder.txtTime.setText(
                     sdf.format(new Date(history.getTimestamp()))
             );
 
         } else {
+
             holder.txtTime.setText("");
         }
     }
 
     private String getActionText(String action) {
 
-        if (action == null) return "Hoạt động hệ thống";
+        if (action == null) {
+            return "Hoạt động hệ thống";
+        }
 
         switch (action) {
 
@@ -87,7 +125,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
                 return "✏️ Cập nhật hộ dân";
 
             case "DELETE_HOUSEHOLD":
-                return "🗑️ Xóa hộ dân";
+                return "🗑 Xóa hộ dân";
 
             case "ADD_MEMBER":
                 return "➕ Thêm thành viên";
@@ -96,7 +134,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
                 return "✏️ Cập nhật thành viên";
 
             case "DELETE_MEMBER":
-                return "🗑️ Xóa thành viên";
+                return "🗑 Xóa thành viên";
 
             case "ADD_USER":
                 return "➕ Thêm người dùng";
@@ -105,7 +143,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
                 return "✏️ Cập nhật người dùng";
 
             case "DELETE_USER":
-                return "🗑️ Xóa người dùng";
+                return "🗑 Xóa người dùng";
 
             case "LOGIN":
                 return "🔐 Đăng nhập";
@@ -114,57 +152,11 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
                 return "🔑 Đổi mật khẩu";
 
             case "IMPORT_EXCEL":
-                return "📊 Nhập dữ liệu Excel";
+                return "📊 Import Excel";
 
             default:
                 return action;
         }
-    }
-
-    private String buildDetail(History history) {
-
-        StringBuilder builder = new StringBuilder();
-
-        if (history.getTargetName() != null &&
-                !history.getTargetName().isEmpty()) {
-
-            builder.append("Đối tượng: ")
-                    .append(history.getTargetName())
-                    .append("\n");
-        }
-
-        if (history.getHouseholdId() != null &&
-                !history.getHouseholdId().isEmpty()) {
-
-            builder.append("Mã hộ: ")
-                    .append(history.getHouseholdId())
-                    .append("\n");
-        }
-
-        if (history.getField() != null &&
-                !history.getField().isEmpty()) {
-
-            builder.append("Trường: ")
-                    .append(history.getField())
-                    .append("\n");
-        }
-
-        if (history.getOldValue() != null &&
-                !history.getOldValue().isEmpty()) {
-
-            builder.append("Cũ: ")
-                    .append(history.getOldValue())
-                    .append("\n");
-        }
-
-        if (history.getNewValue() != null &&
-                !history.getNewValue().isEmpty()) {
-
-            builder.append("Mới: ")
-                    .append(history.getNewValue());
-        }
-
-        return builder.toString().trim();
     }
 
     @Override
@@ -175,7 +167,8 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
     static class ViewHolder extends RecyclerView.ViewHolder {
 
         TextView txtAction;
-        TextView txtDetail;
+        TextView txtTarget;
+        TextView txtField;
         TextView txtUser;
         TextView txtTime;
 
@@ -183,7 +176,8 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
             super(itemView);
 
             txtAction = itemView.findViewById(R.id.txtAction);
-            txtDetail = itemView.findViewById(R.id.txtDetail);
+            txtTarget = itemView.findViewById(R.id.txtTarget);
+            txtField = itemView.findViewById(R.id.txtField);
             txtUser = itemView.findViewById(R.id.txtUser);
             txtTime = itemView.findViewById(R.id.txtTime);
         }

@@ -90,7 +90,7 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <!-- Địa chỉ -->
+                <!-- Địa chỉ (chỉ xem) -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -108,51 +108,6 @@
                     android:padding="12dp"
                     android:textColor="#424242"
                     android:textSize="15sp" />
-
-                <Button
-                    android:id="@+id/btnSuaDiaChi"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="✏️ Sửa địa chỉ"
-                    android:textSize="14sp"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
-
-                <!-- Form sửa địa chỉ (ẩn) -->
-                <LinearLayout
-                    android:id="@+id/layoutSuaDiaChi"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:visibility="gone">
-
-                    <EditText
-                        android:id="@+id/edtAp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:hint="Ấp / Thôn / Khu phố"
-                        android:background="@drawable/bg_edittext"
-                        android:padding="12dp" />
-
-                    <EditText
-                        android:id="@+id/edtXa"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:hint="Xã / Phường"
-                        android:background="@drawable/bg_edittext"
-                        android:padding="12dp" />
-
-                    <EditText
-                        android:id="@+id/edtTinh"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:hint="Tỉnh / Thành phố"
-                        android:background="@drawable/bg_edittext"
-                        android:padding="12dp" />
-                </LinearLayout>
 
                 <!-- Năm sinh -->
                 <TextView
@@ -191,7 +146,7 @@
                     android:padding="12dp"
                     android:textSize="15sp" />
 
-                <!-- Số nhân khẩu (không cho sửa) -->
+                <!-- Số nhân khẩu -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -213,6 +168,7 @@
             </LinearLayout>
 
             <!-- Ghi chú hoàn cảnh -->
+            <!-- Ghi chú hoàn cảnh -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -222,6 +178,7 @@
                 android:textColor="#1B5E20"
                 android:textSize="16sp"
                 android:textStyle="bold" />
+
             <EditText
                 android:id="@+id/edtGhiChuHoanCanh"
                 android:layout_width="match_parent"
@@ -230,9 +187,13 @@
                 android:gravity="top|start"
                 android:hint="Nhập chi tiết hoàn cảnh hộ gia đình..."
                 android:inputType="textMultiLine"
-                android:lines="8"
+                android:lines="3"
+                android:minLines="3"
+                android:maxLines="3"
+                android:overScrollMode="never"
+                android:scrollbars="none"
                 android:padding="14dp"
-                android:textSize="15sp" />
+                android:textSize="15sp"/>
 
         </LinearLayout>
     </ScrollView>

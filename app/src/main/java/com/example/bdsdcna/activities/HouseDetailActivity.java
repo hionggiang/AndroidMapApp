@@ -181,7 +181,7 @@ public class HouseDetailActivity extends AppCompatActivity {
             }
         });
 
-        btnUpdate.setOnClickListener(v -> showUpdateBottomSheet());
+        btnUpdate.setOnClickListener(v -> checkPermissionUpdate());
     }
 
     // ================= CÁC HÀM CŨ GIỮ NGUYÊN =================
@@ -312,6 +312,58 @@ public class HouseDetailActivity extends AppCompatActivity {
         } else {
             txtCost.setText("Kinh phí đề xuất: 0 đ");
         }
+    }
+    private void checkPermissionUpdate() {
+
+        // Chưa đăng nhập
+        if (com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() == null) {
+
+            Toast.makeText(this,
+                    "Vui lòng đăng nhập để cập nhật",
+                    Toast.LENGTH_SHORT).show();
+
+            startActivity(new Intent(
+                    HouseDetailActivity.this,
+                    SignInActivity.class));
+
+            return;
+        }
+
+        String uid = com.google.firebase.auth.FirebaseAuth
+                .getInstance()
+                .getCurrentUser()
+                .getUid();
+
+        FirebaseDatabase.getInstance()
+                .getReference("users")
+                .child(uid)
+                .child("role")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+
+                    String role = snapshot.getValue(String.class);
+
+                    if ("admin".equalsIgnoreCase(role)) {
+
+                        // Có quyền
+                        showUpdateBottomSheet();
+
+                    } else {
+
+                        Toast.makeText(
+                                HouseDetailActivity.this,
+                                "Bạn không có quyền cập nhật",
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(
+                                HouseDetailActivity.this,
+                                "Không kiểm tra được quyền",
+                                Toast.LENGTH_SHORT
+                        ).show());
     }
 
     @Override

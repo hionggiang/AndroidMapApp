@@ -53,21 +53,17 @@ public class History {
     public History() {
         // Firebase cần constructor rỗng
     }
+    // Loại đối tượng bị tác động
+// household | member | user | notification | system
+    private String targetType;
 
-    public History(String historyId,
-                   String action,
-                   String householdId,
-                   String memberId,
-                   String targetUserId,
-                   String targetName,
-                   String field,
-                   String oldValue,
-                   String newValue,
-                   String userId,
-                   String userName,
-                   String userEmail,
-                   long timestamp) {
+    // Địa chỉ/IP hoặc thiết bị (nếu muốn lưu)
+    private String device;
 
+    // Ghi chú
+    private String description;
+
+    public History(String historyId, String action, String householdId, String memberId, String targetUserId, String targetName, String field, String oldValue, String newValue, String userId, String userName, String userEmail, long timestamp, String targetType, String device, String description) {
         this.historyId = historyId;
         this.action = action;
         this.householdId = householdId;
@@ -81,6 +77,9 @@ public class History {
         this.userName = userName;
         this.userEmail = userEmail;
         this.timestamp = timestamp;
+        this.targetType = targetType;
+        this.device = device;
+        this.description = description;
     }
 
     public String getHistoryId() {
@@ -186,4 +185,29 @@ public class History {
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
+
+    public String getTargetType() {
+        return targetType;
+    }
+
+    public void setTargetType(String targetType) {
+        this.targetType = targetType;
+    }
+
+    public String getDevice() {
+        return device;
+    }
+
+    public void setDevice(String device) {
+        this.device = device;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
 }
