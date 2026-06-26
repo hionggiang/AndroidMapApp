@@ -5,8 +5,10 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"
@@ -22,7 +24,9 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAnE8-CytwmtRQ5RSzOgpkg7SHispOV54Q" />
 
-        <activity android:name="com.example.bdsdcna.activities.ForgotPasswordActivity" android:exported="false" />
+        <activity
+            android:name="com.example.bdsdcna.activities.ForgotPasswordActivity"
+            android:exported="false" />
 
         <activity
             android:name="com.example.bdsdcna.activities.SignInActivity"
@@ -42,6 +46,11 @@
         </activity>
 
         <activity
+            android:name="com.example.bdsdcna.activities.UpdateLocationActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name="com.example.bdsdcna.activities.UpdateMemberActivity"
             android:exported="false" />
 
@@ -50,17 +59,49 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <activity android:name="com.example.bdsdcna.activities.UploadActivity" android:exported="false" />
-        <activity android:name="com.example.bdsdcna.activities.HouseDetailActivity" android:exported="false" />
-        <activity android:name="com.example.bdsdcna.activities.HouseImagesActivity" android:exported="false" />
-        <activity android:name="com.example.bdsdcna.activities.MemberActivity" android:exported="false" />
-        <activity android:name="com.example.bdsdcna.activities.ProgressActivity" android:exported="false" />
-        <activity android:name="com.example.bdsdcna.activities.SponsorActivity" android:exported="false" />
-        <activity android:name="com.example.bdsdcna.activities.Camera360Activity" android:exported="false" />
-        <activity android:name="com.example.bdsdcna.activities.AccountInfoActivity" android:exported="false" />
-        <activity android:name="com.example.bdsdcna.activities.ChangePasswordActivity" android:exported="false" />
-        <activity android:name="com.example.bdsdcna.activities.UserManagementActivity" android:exported="false" />
-        <activity android:name="com.example.bdsdcna.activities.UpdateSituationActivity" android:exported="false" />
+        <activity
+            android:name="com.example.bdsdcna.activities.UploadActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.example.bdsdcna.activities.HouseDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.example.bdsdcna.activities.HouseImagesActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.example.bdsdcna.activities.MemberActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.example.bdsdcna.activities.ProgressActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.example.bdsdcna.activities.SponsorActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.example.bdsdcna.activities.Camera360Activity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.example.bdsdcna.activities.AccountInfoActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.example.bdsdcna.activities.ChangePasswordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.example.bdsdcna.activities.UserManagementActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.example.bdsdcna.activities.UpdateSituationActivity"
+            android:exported="false" />
 
     </application>
 </manifest>

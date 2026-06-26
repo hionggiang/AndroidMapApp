@@ -15,7 +15,6 @@
         android:gravity="center"
         android:paddingBottom="20dp" />
 
-    <!-- === MỚI THÊM: Cập nhật hoàn cảnh === -->
     <LinearLayout
         android:id="@+id/optionSituation"
         style="@style/UpdateOptionItem">
@@ -27,38 +26,16 @@
             android:padding="8dp" />
     </LinearLayout>
 
-<!--    <LinearLayout-->
-<!--        android:id="@+id/optionBasicInfo"-->
-<!--        style="@style/UpdateOptionItem">-->
-<!--        <TextView-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:text="@string/update_basic_info"-->
-<!--            android:textSize="16sp"-->
-<!--            android:padding="8dp" />-->
-<!--    </LinearLayout>-->
-
-<!--    <LinearLayout-->
-<!--        android:id="@+id/optionImages"-->
-<!--        style="@style/UpdateOptionItem">-->
-<!--        <TextView-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:text="@string/update_images"-->
-<!--            android:textSize="16sp"-->
-<!--            android:padding="8dp" />-->
-<!--    </LinearLayout>-->
-
-<!--    <LinearLayout-->
-<!--        android:id="@+id/option360"-->
-<!--        style="@style/UpdateOptionItem">-->
-<!--        <TextView-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:text="@string/update_360"-->
-<!--            android:textSize="16sp"-->
-<!--            android:padding="8dp" />-->
-<!--    </LinearLayout>-->
+    <LinearLayout
+        android:id="@+id/optionLocation"
+        style="@style/UpdateOptionItem">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cập nhật vị trí"
+            android:textSize="16sp"
+            android:padding="8dp" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/optionMembers"
@@ -70,7 +47,6 @@
             android:textSize="16sp"
             android:padding="8dp" />
     </LinearLayout>
-
 
     <LinearLayout
         android:id="@+id/optionProgress"

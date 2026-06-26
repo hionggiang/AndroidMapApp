@@ -120,15 +120,23 @@ public class HouseDetailActivity extends AppCompatActivity {
         View bottomSheetView = getLayoutInflater().inflate(R.layout.bottom_sheet_update_options, null);
         bottomSheetDialog.setContentView(bottomSheetView);
 
-        // 1. Nút cập nhật hoàn cảnh (đã có sẵn của bạn)
+        // 1. Nút cập nhật hoàn cảnh
         bottomSheetView.findViewById(R.id.optionSituation).setOnClickListener(v -> {
             goToUpdateActivity(UpdateSituationActivity.class);
             bottomSheetDialog.dismiss();
         });
 
-        // 2. THÊM VÀO: Nút cập nhật thành viên của bạn ở đây
+        // 2. MỚI THÊM: Nút cập nhật vị trí bản đồ
+        if (bottomSheetView.findViewById(R.id.optionLocation) != null) {
+            bottomSheetView.findViewById(R.id.optionLocation).setOnClickListener(v -> {
+                // Hãy thay thế 'UpdateLocationActivity.class' bằng tên Activity chọn vị trí của bạn
+                goToUpdateActivity(UpdateLocationActivity.class);
+                bottomSheetDialog.dismiss();
+            });
+        }
+
+        // 3. Nút cập nhật thành viên
         bottomSheetView.findViewById(R.id.optionMembers).setOnClickListener(v -> {
-            // Thay 'UpdateMemberActivity.class' bằng tên Activity quản lý cập nhật thành viên thực tế của bạn
             goToUpdateActivity(UpdateMemberActivity.class);
             bottomSheetDialog.dismiss();
         });
@@ -302,7 +310,7 @@ public class HouseDetailActivity extends AppCompatActivity {
             if (house.getDoiTuong().isHoNgheo()) doiTuong = "Hộ nghèo";
             else if (house.getDoiTuong().isHoCanNgheo()) doiTuong = "Hộ cận nghèo";
             else if (house.getDoiTuong().isHoKhoKhan()) doiTuong = "Hộ khó khăn";
-            else if (house.getDoiTuong().isGiaDinhChinhSach()) doiTuong = "Gia đình chính sách";
+            else if (house.getDoiTuong().isGiaDinhChinhSach()) doiTuong = "Gia định chính sách";
         }
         txtObject.setText(doiTuong);
 
