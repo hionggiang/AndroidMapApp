@@ -120,8 +120,16 @@ public class HouseDetailActivity extends AppCompatActivity {
         View bottomSheetView = getLayoutInflater().inflate(R.layout.bottom_sheet_update_options, null);
         bottomSheetDialog.setContentView(bottomSheetView);
 
+        // 1. Nút cập nhật hoàn cảnh (đã có sẵn của bạn)
         bottomSheetView.findViewById(R.id.optionSituation).setOnClickListener(v -> {
             goToUpdateActivity(UpdateSituationActivity.class);
+            bottomSheetDialog.dismiss();
+        });
+
+        // 2. THÊM VÀO: Nút cập nhật thành viên của bạn ở đây
+        bottomSheetView.findViewById(R.id.optionMembers).setOnClickListener(v -> {
+            // Thay 'UpdateMemberActivity.class' bằng tên Activity quản lý cập nhật thành viên thực tế của bạn
+            goToUpdateActivity(UpdateMemberActivity.class);
             bottomSheetDialog.dismiss();
         });
 

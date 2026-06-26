@@ -23,7 +23,6 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class HistoryFragment extends Fragment {
@@ -45,19 +44,13 @@ public class HistoryFragment extends Fragment {
             @Nullable ViewGroup container,
             @Nullable Bundle savedInstanceState) {
 
-        View view = inflater.inflate(
-                R.layout.fragment_history,
-                container,
-                false
-        );
+        View view = inflater.inflate(R.layout.fragment_history, container, false);
 
         rvHistory = view.findViewById(R.id.rvHistory);
         progressBar = view.findViewById(R.id.progressBar);
         tvEmpty = view.findViewById(R.id.tvEmpty);
 
-        rvHistory.setLayoutManager(
-                new LinearLayoutManager(requireContext())
-        );
+        rvHistory.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         adapter = new HistoryAdapter(requireContext(), historyList);
         rvHistory.setAdapter(adapter);
@@ -68,7 +61,6 @@ public class HistoryFragment extends Fragment {
     }
 
     private void loadHistory() {
-
         progressBar.setVisibility(View.VISIBLE);
 
         FirebaseDatabase.getInstance()
@@ -77,28 +69,32 @@ public class HistoryFragment extends Fragment {
 
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-
                         historyList.clear();
 
                         for (DataSnapshot item : snapshot.getChildren()) {
-
-                            History history =
-                                    item.getValue(History.class);
-
+                            History history = item.getValue(History.class);
                             if (history != null) {
                                 historyList.add(history);
                             }
                         }
 
-                        Collections.sort(historyList,
-                                (o1, o2) ->
-                                        Long.compare(
-                                                o2.getTimestamp(),
-                                                o1.getTimestamp()
-                                        ));
+                        // SỬA LỖI ĐỎ SẮP XẾP: Ép kiểu Object sang long an toàn
+                        Collections.sort(historyList, (o1, o2) -> {
+                            long t1 = 0;
+                            long t2 = 0;
+
+                            if (o1.getTimestamp() instanceof Long) {
+                                t1 = (Long) o1.getTimestamp();
+                            }
+                            if (o2.getTimestamp() instanceof Long) {
+                                t2 = (Long) o2.getTimestamp();
+                            }
+
+                            // Sắp xếp giảm dần (Mới nhất lên đầu)
+                            return Long.compare(t2, t1);
+                        });
 
                         adapter.notifyDataSetChanged();
-
                         progressBar.setVisibility(View.GONE);
 
                         if (historyList.isEmpty()) {

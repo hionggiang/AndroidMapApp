@@ -1,189 +1,60 @@
 package com.example.bdsdcna.models;
 
 public class History {
-
     private String historyId;
-
-    // Loại thao tác
-    // ADD_HOUSEHOLD
-    // UPDATE_HOUSEHOLD
-    // DELETE_HOUSEHOLD
-    // ADD_MEMBER
-    // UPDATE_MEMBER
-    // DELETE_MEMBER
-    // ADD_USER
-    // UPDATE_USER
-    // DELETE_USER
-    // LOGIN
-    // CHANGE_PASSWORD
-    // IMPORT_EXCEL
     private String action;
-
-    // ID hộ dân liên quan
     private String householdId;
-
-    // ID thành viên liên quan
     private String memberId;
-
-    // ID user bị tác động
-    private String targetUserId;
-
-    // Tên đối tượng bị tác động
-    private String targetName;
-
-    // Tên trường thay đổi
     private String field;
-
-    // Giá trị cũ
     private String oldValue;
-
-    // Giá trị mới
     private String newValue;
 
-    // Người thực hiện
-    private String userId;
+    // Đã đồng bộ theo bảng users
+    private String uid;
+    private String email;
+    private String name;
 
-    private String userName;
+    // Đổi từ long/Long sang Object để nhận diện được ServerValue.TIMESTAMP
+    private Object timestamp;
 
-    private String userEmail;
-
-    // Thời gian
-    private long timestamp;
-
+    // Constructor rỗng bắt buộc phải có cho Firebase
     public History() {
-        // Firebase cần constructor rỗng
     }
 
-    public History(String historyId,
-                   String action,
-                   String householdId,
-                   String memberId,
-                   String targetUserId,
-                   String targetName,
-                   String field,
-                   String oldValue,
-                   String newValue,
-                   String userId,
-                   String userName,
-                   String userEmail,
-                   long timestamp) {
+    // ================= GETTER VÀ SETTER =================
 
-        this.historyId = historyId;
-        this.action = action;
-        this.householdId = householdId;
-        this.memberId = memberId;
-        this.targetUserId = targetUserId;
-        this.targetName = targetName;
-        this.field = field;
-        this.oldValue = oldValue;
-        this.newValue = newValue;
-        this.userId = userId;
-        this.userName = userName;
-        this.userEmail = userEmail;
-        this.timestamp = timestamp;
-    }
+    public String getHistoryId() { return historyId; }
+    public void setHistoryId(String historyId) { this.historyId = historyId; }
 
-    public String getHistoryId() {
-        return historyId;
-    }
+    public String getAction() { return action; }
+    public void setAction(String action) { this.action = action; }
 
-    public void setHistoryId(String historyId) {
-        this.historyId = historyId;
-    }
+    public String getHouseholdId() { return householdId; }
+    public void setHouseholdId(String householdId) { this.householdId = householdId; }
 
-    public String getAction() {
-        return action;
-    }
+    public String getMemberId() { return memberId; }
+    public void setMemberId(String memberId) { this.memberId = memberId; }
 
-    public void setAction(String action) {
-        this.action = action;
-    }
+    public String getField() { return field; }
+    public void setField(String field) { this.field = field; }
 
-    public String getHouseholdId() {
-        return householdId;
-    }
+    public String getOldValue() { return oldValue; }
+    public void setOldValue(String oldValue) { this.oldValue = oldValue; }
 
-    public void setHouseholdId(String householdId) {
-        this.householdId = householdId;
-    }
+    public String getNewValue() { return newValue; }
+    public void setNewValue(String newValue) { this.newValue = newValue; }
 
-    public String getMemberId() {
-        return memberId;
-    }
+    // Các hàm getter/setter mới cho User
+    public String getUid() { return uid; }
+    public void setUid(String uid) { this.uid = uid; }
 
-    public void setMemberId(String memberId) {
-        this.memberId = memberId;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public String getTargetUserId() {
-        return targetUserId;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public void setTargetUserId(String targetUserId) {
-        this.targetUserId = targetUserId;
-    }
-
-    public String getTargetName() {
-        return targetName;
-    }
-
-    public void setTargetName(String targetName) {
-        this.targetName = targetName;
-    }
-
-    public String getField() {
-        return field;
-    }
-
-    public void setField(String field) {
-        this.field = field;
-    }
-
-    public String getOldValue() {
-        return oldValue;
-    }
-
-    public void setOldValue(String oldValue) {
-        this.oldValue = oldValue;
-    }
-
-    public String getNewValue() {
-        return newValue;
-    }
-
-    public void setNewValue(String newValue) {
-        this.newValue = newValue;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public String getUserEmail() {
-        return userEmail;
-    }
-
-    public void setUserEmail(String userEmail) {
-        this.userEmail = userEmail;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
-    }
+    // Hàm timestamp kiểu Object
+    public Object getTimestamp() { return timestamp; }
+    public void setTimestamp(Object timestamp) { this.timestamp = timestamp; }
 }
